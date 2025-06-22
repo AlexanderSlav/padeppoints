@@ -1,10 +1,12 @@
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from app.models.tournament import Tournament, TournamentSystem
-from app.services.mock_db import MockDB
+from app.repositories.tournament_repository import TournamentRepository
+from app.db.base import get_db
 
 router = APIRouter()
 
@@ -27,47 +29,51 @@ class TournamentResponse(BaseModel):
 
 
 @router.post("/", response_model=TournamentResponse)
-def create_tournament(tournament: TournamentCreate):
+async def create_tournament(tournament: TournamentCreate, db: AsyncSession = Depends(get_db)):
     """Create a new tournament"""
-    new_tournament = Tournament(
-        id=str(uuid.uuid4()),
-        name=tournament.name,
-        system=tournament.system,
-        created_by=tournament.created_by,
-        status="pending"
-    )
-    return MockDB.create_tournament(new_tournament)
+    tournament_data = {
+        "id": str(uuid.uuid4()),
+        "name": tournament.name,
+        "system": tournament.system,
+        "created_by": tournament.created_by,
+        "status": "pending"
+    }
+    
+    tournament_repo = TournamentRepository(db)
+    return await tournament_repo.create(tournament_data)
 
 
 @router.get("/", response_model=List[TournamentResponse])
-def list_tournaments():
+async def list_tournaments(db: AsyncSession = Depends(get_db)):
     """List all tournaments"""
-    return MockDB.list_tournaments()
+    tournament_repo = TournamentRepository(db)
+    return await tournament_repo.get_all()
 
 
 @router.get("/{tournament_id}", response_model=TournamentResponse)
-def get_tournament(tournament_id: str):
+async def get_tournament(tournament_id: str, db: AsyncSession = Depends(get_db)):
     """Get tournament details"""
-    tournament = MockDB.get_tournament(tournament_id)
+    tournament_repo = TournamentRepository(db)
+    tournament = await tournament_repo.get_by_id(tournament_id)
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
     return tournament
 
 
 @router.post("/{tournament_id}/join")
-def join_tournament(tournament_id: str, player_id: str):
+async def join_tournament(tournament_id: str, player_id: str, db: AsyncSession = Depends(get_db)):
     """Join a tournament as a player"""
-    if not MockDB.get_tournament(tournament_id):
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    
-    if MockDB.join_tournament(tournament_id, player_id):
+    tournament_repo = TournamentRepository(db)
+    if await tournament_repo.join_tournament(tournament_id, player_id):
         return {"message": "Successfully joined tournament"}
-    raise HTTPException(status_code=400, detail="Already joined tournament")
+    raise HTTPException(status_code=400, detail="Failed to join tournament")
 
 
 @router.get("/{tournament_id}/players")
-def get_tournament_players(tournament_id: str):
+async def get_tournament_players(tournament_id: str, db: AsyncSession = Depends(get_db)):
     """Get list of player IDs in a tournament"""
-    if not MockDB.get_tournament(tournament_id):
+    tournament_repo = TournamentRepository(db)
+    tournament = await tournament_repo.get_by_id(tournament_id)
+    if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
-    return {"players": MockDB.get_tournament_players(tournament_id)} 
+    return {"players": await tournament_repo.get_tournament_players(tournament_id)} 

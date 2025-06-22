@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Boolean
 from sqlalchemy.orm import relationship
-from app.db.base import Base
-
+from app.models.base import Base
+from app.models.tournament import tournament_player  # Import the association table
 
 class User(Base):
     __tablename__ = "users"
@@ -13,9 +13,22 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
 
+    # Many-to-many relationship with tournaments
     tournaments = relationship(
         "Tournament",
-        secondary="tournament_player",
+        secondary=tournament_player,  # Use the imported table
         back_populates="players"
     )
-    created_tournaments = relationship("Tournament", back_populates="creator") 
+    
+    # One-to-many relationship for created tournaments
+    created_tournaments = relationship(
+        "Tournament", 
+        back_populates="creator", 
+        foreign_keys="Tournament.created_by"
+    )
+    
+    # Note: Round relationships are handled via queries in repositories
+    # No need for direct relationships as they would be complex and rarely used
+
+    def __repr__(self):
+        return f"<User(id={self.id}, email={self.email}, full_name={self.full_name})>"

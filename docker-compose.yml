@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    container_name: padel_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env
+
+  web:
+    build:
+      context: .
+      target: dev
+    container_name: padel_web
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PYTHONPATH: .
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./alembic/versions:/app/alembic/versions
+
+volumes:
+  postgres_data: 

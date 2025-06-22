@@ -1,29 +1,17 @@
-"""Base module for the database."""
+"""Engine module for the database."""
 
-import asyncio
-
-from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
-from app.core.config import settings
-
-# Create an async engine
-engine = create_async_engine(
-    str(settings.DATABASE_URL),
-    echo=False,
-)
-
-# Create async session factory
-AsyncSessionLocal = async_scoped_session(
-    sessionmaker(engine, class_=AsyncSession, expire_on_commit=False),
-    scopefunc=asyncio.current_task,
-)
+from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 
-async def get_db() -> AsyncSession:
-    """Dependency for getting async database session."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+async def configure_db(dsn: str, is_prod: bool = True) -> AsyncEngine:
+    """Configure app db connection and session maker."""
+    engine = create_async_engine(dsn, echo=not is_prod)
+    logger.info("DB connection created.")
+    return engine
+
+
+async def disconnect_from_db(engine: AsyncEngine):
+    """Disconnect app from DB."""
+    await engine.dispose()
+    logger.info("DB disconnected.")

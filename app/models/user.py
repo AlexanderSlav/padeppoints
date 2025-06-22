@@ -26,9 +26,6 @@ class User(Base):
         back_populates="creator", 
         foreign_keys="Tournament.created_by"
     )
-    
-    # Note: Round relationships are handled via queries in repositories
-    # No need for direct relationships as they would be complex and rarely used
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, full_name={self.full_name})>"

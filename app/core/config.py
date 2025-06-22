@@ -34,9 +34,6 @@ class DatabaseSettings(BaseModel):
         )
     
 class Settings(BaseSettings):
-    APP_NAME: str
-    DEBUG: bool
-    
     # Database
     db: DatabaseSettings = DatabaseSettings()
     
@@ -44,6 +41,11 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     GOOGLE_REDIRECT_URI: str
+    
+    # JWT Settings
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
     model_config = SettingsConfigDict(
         env_nested_delimiter="_",

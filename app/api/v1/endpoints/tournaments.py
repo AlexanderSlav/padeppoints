@@ -5,8 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from app.models.tournament import Tournament, TournamentSystem
+from app.models.user import User
 from app.repositories.tournament_repository import TournamentRepository
 from app.db.base import get_db
+from app.core.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -14,7 +16,6 @@ router = APIRouter()
 class TournamentCreate(BaseModel):
     name: str
     system: TournamentSystem
-    created_by: str  # In real app, this would come from authenticated user
 
 
 class TournamentResponse(BaseModel):
@@ -29,13 +30,17 @@ class TournamentResponse(BaseModel):
 
 
 @router.post("/", response_model=TournamentResponse)
-async def create_tournament(tournament: TournamentCreate, db: AsyncSession = Depends(get_db)):
+async def create_tournament(
+    tournament: TournamentCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Create a new tournament"""
     tournament_data = {
         "id": str(uuid.uuid4()),
         "name": tournament.name,
         "system": tournament.system,
-        "created_by": tournament.created_by,
+        "created_by": current_user.id,  # Use authenticated user ID
         "status": "pending"
     }
     

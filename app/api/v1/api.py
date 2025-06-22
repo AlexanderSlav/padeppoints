@@ -8,4 +8,17 @@ api_router.include_router(
     tournaments.router,
     prefix="/tournaments",
     tags=["tournaments"]
-) 
+)
+
+# api_router.include_router(
+#     auth.router,
+#     prefix="/rounds",
+#     tags=["rounds"]
+# )
+
+# api_router.include_router(
+#     auth.router,
+#     prefix="/auth",
+#     tags=["auth"]
+# )
+

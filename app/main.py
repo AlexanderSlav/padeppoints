@@ -26,10 +26,10 @@ async def lifespan(highlights_app: FastAPI):
     logger.info(f"Starting {highlights_app.title}.")
 
     # Run migrations.
-    # try:
-    #     run_migrations(settings.db.dsn)  # sync is fine here, see migration.py
-    # except Exception as exc:
-    #     logger.error(f"Alembic migration error: {exc}.")
+    try:
+        run_migrations(settings.db.dsn)  # sync is fine here, see migration.py
+    except Exception as exc:
+        logger.error(f"Alembic migration error: {exc}.")
 
     yield
 

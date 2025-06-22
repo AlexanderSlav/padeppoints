@@ -97,58 +97,6 @@ async def google_callback_redirect(
         )
 
 
-@router.post("/google/callback", response_model=TokenResponse)
-async def google_callback(
-    callback_data: GoogleCallbackRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """Handle Google OAuth callback and create user session (POST for API usage)."""
-    
-    try:
-        # Exchange authorization code for access token
-        token_data = await auth_service.exchange_code_for_token(callback_data.code)
-        access_token = token_data.get("access_token")
-        
-        if not access_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to get access token from Google"
-            )
-        
-        # Get user information from Google
-        google_user_info = await auth_service.get_google_user_info(access_token)
-        
-        # Extract user data
-        user_data = auth_service.extract_user_data(google_user_info)
-        
-        # Create or update user in database
-        user_repo = UserRepository(db)
-        user = await user_repo.create_or_update_user(user_data)
-        
-        # Create JWT token
-        jwt_payload = {
-            "sub": user.id,
-            "email": user.email,
-            "full_name": user.full_name
-        }
-        jwt_token = auth_service.create_access_token(jwt_payload)
-        
-        # Return token response
-        return TokenResponse(
-            access_token=jwt_token,
-            token_type="bearer",
-            expires_in=settings.JWT_EXPIRE_MINUTES * 60,  # Convert to seconds
-            user=UserResponse.model_validate(user)
-        )
-        
-    except Exception as e:
-        logger.error(f"Google OAuth callback error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication failed"
-        )
-
-
 @router.post("/logout")
 async def logout(response: Response):
     """Logout user (client should discard the token)."""

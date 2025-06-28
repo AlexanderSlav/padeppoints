@@ -17,7 +17,7 @@ class TournamentSystem(enum.Enum):  # Fixed: removed str inheritance
     MEXICANO = "mexicano"
 
 class Tournament(Base):
-    __tablename__ = "tournament"
+    __tablename__ = "tournaments"
 
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
@@ -33,7 +33,7 @@ class Tournament(Base):
         secondary=tournament_player,
         back_populates="tournaments"
     )
-    rounds = relationship("Round", back_populates="tournament", cascade="all, delete-orphan")
+    rounds = relationship("Round", back_populates="tournaments", cascade="all, delete-orphan")
     creator = relationship("User", foreign_keys=[created_by], back_populates="created_tournaments")
 
     def __repr__(self):

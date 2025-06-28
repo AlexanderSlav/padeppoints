@@ -1,74 +1,84 @@
-DB_SERVICE_NAME?=highlights-db
-API_SERVICE_NAME?=highlights-api
+DB_SERVICE_NAME?=padel_db
+API_SERVICE_NAME?=padel_web
+FRONTEND_SERVICE_NAME?=padel_frontend
 
 include .env
 
 .PHONY: build
-build:  ## Build the containers
-	docker compose --profile test build
+build:  ## Build all containers
+	docker compose build
+
+.PHONY: build-frontend
+build-frontend:  ## Build only frontend container
+	docker compose build frontend
+
+.PHONY: build-backend
+build-backend:  ## Build only backend container
+	docker compose build web
 
 .PHONY: up
-up:  ## Up all the containers without test service
+up:  ## Start all services (database, backend, frontend)
 	docker compose up -d --force-recreate
 
-# .PHONY: insert_admin
-# insert_admin:
-# 	docker exec -it $(DB_SERVICE_NAME) psql -d $(DB_NAME) -U $(DB_USERNAME) -c "INSERT INTO users (id, created_at, password_hash, is_active, role_name) VALUES ('admin', now(), '$(ADMIN_PASSWORD_HASH)', true, 'Admin');"
+.PHONY: up-backend
+up-backend:  ## Start only backend services (database + API)
+	docker compose up -d db web --force-recreate
 
-# .PHONY: insert_moderator
-# insert_moderator:
-# 	docker exec -it $(DB_SERVICE_NAME) psql -d $(DB_NAME) -U $(DB_USERNAME) -c "INSERT INTO users (id, created_at, password_hash, is_active, role_name) VALUES ('moderator', now(), '$(MODERATOR_PASSWORD_HASH)', true, 'Moderator');"
+.PHONY: dev
+dev:  ## Start backend in development mode with hot reloading
+	docker compose up db web --force-recreate
 
-# .PHONY: insert_viewer
-# insert_viewer:
-# 	docker exec -it $(DB_SERVICE_NAME) psql -d $(DB_NAME) -U $(DB_USERNAME) -c "INSERT INTO users (id, created_at, password_hash, is_active, role_name) VALUES ('viewer', now(), '$(VIEWER_PASSWORD_HASH)', true, 'Viewer');"
+.PHONY: dev-frontend
+dev-frontend:  ## Start frontend in development mode with hot reloading
+	docker compose up frontend --force-recreate
 
-# .PHONY: insert_default_users
-# insert_default_users: insert_admin insert_moderator insert_viewer
+.PHONY: dev-full
+dev-full:  ## Start full stack in development mode (backend + frontend)
+	docker compose up db web frontend --force-recreate
 
-# .PHONY: up_with_test
-# up_with_test:  ## Up all the containers including test service which is used for testing
-# 	docker compose --profile test up -d --force-recreate
-# 	# Wait a bit for the DB to be ready
-# 	sleep 5
-# 	$(MAKE) insert_default_users
+.PHONY: up-frontend
+up-frontend:  ## Start only frontend service
+	docker compose up -d frontend --force-recreate
 
-# .PHONY: down
-# down:  ## Down the containers
-# 	docker compose down
+.PHONY: down
+down:  ## Stop all containers
+	docker compose down
 
-# .PHONY: connect_db
-# connect_db:  ## Connect to Postgres container
-# 	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME}
+.PHONY: logs
+logs:  ## Show logs for all services
+	docker compose logs -f
 
-# .PHONY: connect_api
-# connect_api:  ## Connect to API container
-# 	docker exec -it $(API_SERVICE_NAME) /bin/bash
+.PHONY: logs-frontend
+logs-frontend:  ## Show logs for frontend service
+	docker compose logs -f frontend
+
+.PHONY: logs-backend
+logs-backend:  ## Show logs for backend service
+	docker compose logs -f web
+
+.PHONY: logs-db
+logs-db:  ## Show logs for database service
+	docker compose logs -f db
+
+
+.PHONY: connect-db
+connect-db:  ## Connect to Postgres container
+	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME}
+
+.PHONY: connect-backend
+connect-backend:  ## Connect to backend container
+	docker exec -it $(API_SERVICE_NAME) /bin/bash
+
+.PHONY: connect-frontend
+connect-frontend:  ## Connect to frontend container
+	docker exec -it $(FRONTEND_SERVICE_NAME) /bin/sh
 
 # .PHONY: drop_db_tables
 # drop_db_tables:  ## Drop all tables in the database (for dev purposes only; be careful!)
 # 	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users; DROP TABLE IF EXISTS s3p_events; DROP TABLE IF EXISTS roles; DROP TABLE IF EXISTS streams; DROP TABLE IF EXISTS matches; DROP TABLE IF EXISTS jobs; DROP TABLE IF EXISTS alembic_version;"
 
-# .PHONY: logs
-# logs:  ## Show logs
-# 	@while true; do \
-# 		if docker compose ps | grep -q "Up"; then \
-# 			echo "Containers are running. Attaching to logs..."; \
-# 			docker compose --profile test logs -f; \
-# 		else \
-# 			echo "No running containers. Waiting for containers to start..."; \
-# 		fi; \
-# 			sleep 5; \
-# 		done
+.PHONY: help
+help:  ## Show help
+	@grep -hE '^[A-Za-z0-9_ \-]*?:.*##.*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-# .PHONY: style
-# style:  ## Format code
-# 	pre-commit run --all-files
-
-# .PHONY: migration-auto
-# migration-auto:  ## Create an auto-generated migration
-# 	docker exec -it $(API_SERVICE_NAME) bash -c "cd /app && alembic revision --autogenerate -m '$(name)'"
-
-# .PHONY: help
-# help:  ## Show help
-# 	@grep -hE '^[A-Za-z0-9_ \-]*?:.*##.*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+.DEFAULT_GOAL := help

@@ -40,5 +40,23 @@ services:
       - .:/app
       - ./alembic/versions:/app/alembic/versions
 
+  frontend:
+    build:
+      context: ./padel-frontend
+    container_name: padel_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - web
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./padel-frontend:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+
 volumes:
   postgres_data: 

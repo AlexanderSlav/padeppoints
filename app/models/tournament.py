@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Enum, Integer, ForeignKey, Table
+from sqlalchemy import Column, String, DateTime, Enum, Integer, ForeignKey, Table, Text, Float, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import enum
@@ -21,7 +21,12 @@ class Tournament(Base):
 
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
-    system = Column(Enum(TournamentSystem), nullable=False)
+    description = Column(Text)
+    location = Column(String, nullable=False)
+    start_date = Column(Date, nullable=False)
+    entry_fee = Column(Float, nullable=False, default=0.0)
+    max_players = Column(Integer, nullable=False, default=16)
+    system = Column(Enum(TournamentSystem), nullable=False, default=TournamentSystem.AMERICANO)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
     status = Column(String, default="pending")  # pending, active, completed

@@ -13,46 +13,57 @@ const CallbackPage = () => {
   const handleCallback = async () => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
+      const success = urlParams.get('success');
+      const token = urlParams.get('token');
       const error = urlParams.get('error');
 
       if (error) {
         setStatus('error');
-        setError('Authentication was cancelled or failed');
+        switch (error) {
+          case 'token_failed':
+            setError('Failed to get access token from Google');
+            break;
+          case 'auth_failed':
+            setError('Authentication failed. Please try again.');
+            break;
+          default:
+            setError('Authentication was cancelled or failed');
+        }
         return;
       }
 
-      if (!code) {
+      if (!success || !token) {
         setStatus('error');
-        setError('No authorization code received');
+        setError('Invalid authentication response');
         return;
       }
 
-      // Call your backend's callback endpoint
-      const response = await fetch('http://localhost:8000/api/v1/auth/google/callback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code, state }),
-      });
+      // Decode the user info from the JWT token
+      try {
+        const tokenParts = token.split('.');
+        const payload = JSON.parse(atob(tokenParts[1]));
+        
+        const userData = {
+          id: payload.sub,
+          email: payload.email,
+          full_name: payload.full_name
+        };
 
-      if (!response.ok) {
-        throw new Error('Authentication failed');
+        // Store token and user data
+        login(userData, token);
+        
+        setStatus('success');
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
+
+      } catch (jwtError) {
+        console.error('JWT decode error:', jwtError);
+        setStatus('error');
+        setError('Invalid token received');
       }
-
-      const data = await response.json();
-      
-      // Store token and user data
-      login(data.user, data.access_token);
-      
-      setStatus('success');
-      
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 2000);
 
     } catch (err) {
       console.error('Callback error:', err);

@@ -50,9 +50,10 @@ async def google_callback_redirect(
         access_token = token_data.get("access_token")
         
         if not access_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to get access token from Google"
+            # Redirect to frontend with error
+            return RedirectResponse(
+                url=f"{settings.FRONTEND_URL}/auth/callback?error=token_failed",
+                status_code=status.HTTP_302_FOUND
             )
         
         # Get user information from Google
@@ -73,27 +74,18 @@ async def google_callback_redirect(
         }
         jwt_token = auth_service.create_access_token(jwt_payload)
         
-        # Return token response (or redirect to frontend with token)
-        return {
-            "message": "Authentication successful",
-            "access_token": jwt_token,
-            "token_type": "bearer",
-            "expires_in": settings.JWT_EXPIRE_MINUTES * 60,
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "picture": user.picture,
-                "is_active": user.is_active,
-                "is_superuser": user.is_superuser
-            }
-        }
+        # Redirect to frontend callback page with success
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/auth/callback?success=true&token={jwt_token}",
+            status_code=status.HTTP_302_FOUND
+        )
         
     except Exception as e:
         logger.error(f"Google OAuth callback error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication failed"
+        # Redirect to frontend with error
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/auth/callback?error=auth_failed",
+            status_code=status.HTTP_302_FOUND
         )
 
 

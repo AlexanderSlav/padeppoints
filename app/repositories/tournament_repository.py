@@ -17,6 +17,11 @@ class TournamentRepository(BaseRepository[Tournament]):
         result = await self.db.execute(select(Tournament).filter(Tournament.created_by == creator_id))
         return result.scalars().all()
     
+    async def get_by_user(self, user_id: str) -> List[Tournament]:
+        """Get tournaments created by the user"""
+        result = await self.db.execute(select(Tournament).filter(Tournament.created_by == user_id))
+        return result.scalars().all()
+    
     async def join_tournament(self, tournament_id: str, player_id: str) -> bool:
         tournament = await self.get_by_id(tournament_id)
         if not tournament:

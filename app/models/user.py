@@ -1,7 +1,6 @@
 from sqlalchemy import Column, String, Boolean
 from sqlalchemy.orm import relationship
 from app.models.base import Base
-from app.models.tournament import tournament_player  # Import the association table
 
 class User(Base):
     __tablename__ = "users"
@@ -16,7 +15,7 @@ class User(Base):
     # Many-to-many relationship with tournaments
     tournaments = relationship(
         "Tournament",
-        secondary=tournament_player,  # Use the imported table
+        secondary="tournament_player",  # Use string reference to avoid circular import
         back_populates="players"
     )
     

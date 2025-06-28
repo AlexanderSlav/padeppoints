@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str
     GOOGLE_REDIRECT_URI: str
     
+    # Frontend URL
+    FRONTEND_URL: str = "http://localhost:3000"
+    
     # JWT Settings
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

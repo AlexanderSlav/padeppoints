@@ -1,32 +1,16 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
-from app.models.tournament import Tournament, TournamentSystem
+from app.models.tournament import Tournament
 from app.models.user import User
+from app.schemas.tournament import TournamentCreate, TournamentResponse, TournamentUpdate
 from app.repositories.tournament_repository import TournamentRepository
 from app.db.base import get_db
 from app.core.dependencies import get_current_user
 
 router = APIRouter()
-
-
-class TournamentCreate(BaseModel):
-    name: str
-    system: TournamentSystem
-
-
-class TournamentResponse(BaseModel):
-    id: str
-    name: str
-    system: TournamentSystem
-    created_by: str
-    status: str
-
-    class Config:
-        from_attributes = True
 
 
 @router.post("/", response_model=TournamentResponse)
@@ -39,8 +23,13 @@ async def create_tournament(
     tournament_data = {
         "id": str(uuid.uuid4()),
         "name": tournament.name,
+        "description": tournament.description,
+        "location": tournament.location,
+        "start_date": tournament.start_date,
+        "entry_fee": tournament.entry_fee,
+        "max_players": tournament.max_players,
         "system": tournament.system,
-        "created_by": current_user.id,  # Use authenticated user ID
+        "created_by": current_user.id,
         "status": "pending"
     }
     
@@ -49,10 +38,13 @@ async def create_tournament(
 
 
 @router.get("/", response_model=List[TournamentResponse])
-async def list_tournaments(db: AsyncSession = Depends(get_db)):
-    """List all tournaments"""
+async def list_tournaments(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List tournaments for the current user"""
     tournament_repo = TournamentRepository(db)
-    return await tournament_repo.get_all()
+    return await tournament_repo.get_by_user(current_user.id)
 
 
 @router.get("/{tournament_id}", response_model=TournamentResponse)
@@ -66,10 +58,15 @@ async def get_tournament(tournament_id: str, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/{tournament_id}/join")
-async def join_tournament(tournament_id: str, player_id: str, db: AsyncSession = Depends(get_db)):
+async def join_tournament(
+    tournament_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Join a tournament as a player"""
     tournament_repo = TournamentRepository(db)
-    if await tournament_repo.join_tournament(tournament_id, player_id):
+    success = await tournament_repo.join_tournament(tournament_id, current_user.id)
+    if success:
         return {"message": "Successfully joined tournament"}
     raise HTTPException(status_code=400, detail="Failed to join tournament")
 

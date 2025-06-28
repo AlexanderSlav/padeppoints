@@ -73,6 +73,14 @@ connect-backend:  ## Connect to backend container
 connect-frontend:  ## Connect to frontend container
 	docker exec -it $(FRONTEND_SERVICE_NAME) /bin/sh
 
+.PHONY: migration
+migration:  ## Make a new migration
+	@if [ -z "$(m)" ]; then \
+		echo "Error: Migration message not provided. Usage: make make-migration m='your migration message'"; \
+		exit 1; \
+	fi
+	docker exec -it $(API_SERVICE_NAME) alembic revision --autogenerate -m "$(m)"
+
 # .PHONY: drop_db_tables
 # drop_db_tables:  ## Drop all tables in the database (for dev purposes only; be careful!)
 # 	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users; DROP TABLE IF EXISTS s3p_events; DROP TABLE IF EXISTS roles; DROP TABLE IF EXISTS streams; DROP TABLE IF EXISTS matches; DROP TABLE IF EXISTS jobs; DROP TABLE IF EXISTS alembic_version;"

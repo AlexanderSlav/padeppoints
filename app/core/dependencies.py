@@ -3,6 +3,7 @@
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -80,6 +81,7 @@ async def get_optional_current_user(
 ) -> Optional[User]:
     """Get current user if authenticated, otherwise return None."""
     if credentials is None:
+        logger.info("No credentials provided, returning None")
         return None
     
     try:

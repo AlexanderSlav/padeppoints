@@ -17,48 +17,76 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    console.log('🔄 AuthProvider: Running initial checkAuthStatus');
     checkAuthStatus();
   }, []);
 
   const checkAuthStatus = async () => {
+    console.log('🔍 checkAuthStatus: Starting...');
     try {
       const token = localStorage.getItem('access_token');
+      console.log('🔍 checkAuthStatus: Token from localStorage:', token ? 'EXISTS' : 'MISSING');
+      
       if (!token) {
+        console.log('❌ checkAuthStatus: No token found, setting loading to false');
         setLoading(false);
         return;
       }
 
+      console.log('🔍 checkAuthStatus: Calling authAPI.getCurrentUser()...');
       const userData = await authAPI.getCurrentUser();
+      console.log('✅ checkAuthStatus: Got user data:', userData);
+      
       setUser(userData);
       setIsAuthenticated(true);
+      console.log('✅ checkAuthStatus: Authentication successful');
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('❌ checkAuthStatus: Auth check failed:', error);
+      console.log('❌ checkAuthStatus: Removing tokens and setting unauthenticated');
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       setIsAuthenticated(false);
       setUser(null);
     } finally {
+      console.log('🔍 checkAuthStatus: Setting loading to false');
       setLoading(false);
     }
   };
 
   const login = (userData, token) => {
-    localStorage.setItem('access_token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-    setIsAuthenticated(true);
+    console.log('✅ login: Called with user:', userData);
+    console.log('✅ login: Token:', token ? 'PROVIDED' : 'MISSING');
+    
+    try {
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      console.log('✅ login: Token stored in localStorage');
+      
+      // Verify storage worked
+      const storedToken = localStorage.getItem('access_token');
+      console.log('✅ login: Verification - stored token exists:', storedToken ? 'YES' : 'NO');
+      
+      setUser(userData);
+      setIsAuthenticated(true);
+      
+      console.log('✅ login: All steps completed successfully');
+    } catch (error) {
+      console.error('❌ login: Error storing token:', error);
+    }
   };
 
   const logout = async () => {
+    console.log('🚪 logout: Starting logout process');
     try {
       await authAPI.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ logout: Logout error:', error);
     } finally {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       setUser(null);
       setIsAuthenticated(false);
+      console.log('✅ logout: Completed');
     }
   };
 
@@ -70,6 +98,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     checkAuthStatus,
   };
+
+  console.log('🔄 AuthProvider: Current state - isAuthenticated:', isAuthenticated, 'loading:', loading);
 
   return (
     <AuthContext.Provider value={value}>

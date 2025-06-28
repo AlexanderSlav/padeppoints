@@ -51,6 +51,7 @@ async def google_callback_redirect(
         
         if not access_token:
             # Redirect to frontend with error
+            logger.error("Failed to get access token from Google")
             return RedirectResponse(
                 url=f"{settings.FRONTEND_URL}/auth/callback?error=token_failed",
                 status_code=status.HTTP_302_FOUND
@@ -74,6 +75,7 @@ async def google_callback_redirect(
         }
         jwt_token = auth_service.create_access_token(jwt_payload)
         
+        logger.info(f"Redirecting to frontend callback page with success: {settings.FRONTEND_URL}/auth/callback?success=true&token={jwt_token}")
         # Redirect to frontend callback page with success
         return RedirectResponse(
             url=f"{settings.FRONTEND_URL}/auth/callback?success=true&token={jwt_token}",
@@ -127,10 +129,12 @@ async def auth_status(
 ):
     """Check authentication status."""
     if current_user:
+        logger.info(f"Authentication status check: User authenticated: {current_user}")
         return {
             "authenticated": True,
             "user": UserResponse.model_validate(current_user)
         }
     else:
+        logger.info("Authentication status check: User not authenticated")
         return {"authenticated": False, "user": None}
 

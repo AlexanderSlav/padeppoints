@@ -1,23 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../components/AuthContext';
 
 const CallbackPage = () => {
   const { login } = useAuth();
   const [status, setStatus] = useState('processing');
   const [error, setError] = useState('');
+  const hasRun = useRef(false);
 
   useEffect(() => {
+    console.log('🔄 CallbackPage: Component mounted, handling callback');
+    
+    // Prevent double execution in React StrictMode
+    if (hasRun.current) {
+      console.log('🔄 CallbackPage: Already processed, skipping');
+      return;
+    }
+    hasRun.current = true;
+    
     handleCallback();
   }, []);
 
   const handleCallback = async () => {
     try {
+      console.log('🔍 CallbackPage: Parsing URL parameters');
       const urlParams = new URLSearchParams(window.location.search);
       const success = urlParams.get('success');
       const token = urlParams.get('token');
       const error = urlParams.get('error');
 
+      console.log('🔍 CallbackPage: URL params - success:', success, 'token:', token ? 'EXISTS' : 'MISSING', 'error:', error);
+
       if (error) {
+        console.log('❌ CallbackPage: Error in URL params:', error);
         setStatus('error');
         switch (error) {
           case 'token_failed':
@@ -33,6 +47,7 @@ const CallbackPage = () => {
       }
 
       if (!success || !token) {
+        console.log('❌ CallbackPage: Missing success or token params');
         setStatus('error');
         setError('Invalid authentication response');
         return;
@@ -40,8 +55,10 @@ const CallbackPage = () => {
 
       // Decode the user info from the JWT token
       try {
+        console.log('🔍 CallbackPage: Decoding JWT token');
         const tokenParts = token.split('.');
         const payload = JSON.parse(atob(tokenParts[1]));
+        console.log('🔍 CallbackPage: JWT payload:', payload);
         
         const userData = {
           id: payload.sub,
@@ -49,24 +66,29 @@ const CallbackPage = () => {
           full_name: payload.full_name
         };
 
+        console.log('🔍 CallbackPage: Extracted user data:', userData);
+
         // Store token and user data
+        console.log('✅ CallbackPage: Calling login() with user data and token');
         login(userData, token);
         
         setStatus('success');
+        console.log('✅ CallbackPage: Login successful, redirecting in 1.5s');
         
         // Redirect to dashboard after a short delay
         setTimeout(() => {
+          console.log('🔄 CallbackPage: Redirecting to dashboard');
           window.location.href = '/dashboard';
         }, 1500);
 
       } catch (jwtError) {
-        console.error('JWT decode error:', jwtError);
+        console.error('❌ CallbackPage: JWT decode error:', jwtError);
         setStatus('error');
         setError('Invalid token received');
       }
 
     } catch (err) {
-      console.error('Callback error:', err);
+      console.error('❌ CallbackPage: General callback error:', err);
       setStatus('error');
       setError('Authentication failed. Please try again.');
     }
@@ -92,6 +114,20 @@ const CallbackPage = () => {
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
             <h2 style={{ color: '#2f855a' }}>Login Successful!</h2>
             <p style={{ color: '#718096' }}>Redirecting to your dashboard...</p>
+            <div style={{ marginTop: '16px', padding: '16px', background: '#f7fafc', borderRadius: '8px' }}>
+              <button 
+                onClick={() => {
+                  const token = localStorage.getItem('access_token');
+                  const user = localStorage.getItem('user');
+                  console.log('🔍 DEBUG: Token in localStorage:', token ? 'EXISTS' : 'MISSING');
+                  console.log('🔍 DEBUG: User in localStorage:', user ? 'EXISTS' : 'MISSING');
+                  alert(`Token: ${token ? 'EXISTS' : 'MISSING'}\nUser: ${user ? 'EXISTS' : 'MISSING'}`);
+                }}
+                style={{ padding: '8px 16px', fontSize: '12px', background: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                🔍 Debug: Check localStorage
+              </button>
+            </div>
           </div>
         )}
 

@@ -4,8 +4,8 @@ from pydantic import BaseModel, field_validator
 from enum import Enum
 
 class TournamentSystem(str, Enum):
-    AMERICANO = "americano"
-    MEXICANO = "mexicano"
+    AMERICANO = "AMERICANO"
+    MEXICANO = "MEXICANO"
 
 class TournamentBase(BaseModel):
     name: str

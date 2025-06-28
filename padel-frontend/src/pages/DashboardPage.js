@@ -33,7 +33,7 @@ const DashboardPage = () => {
   return (
     <div className="container">
       <div className="header">
-        <h1>🎾 Padel Points</h1>
+        <h1>🎾 Tornetic</h1>
         <p>Tournament Management Dashboard</p>
       </div>
 

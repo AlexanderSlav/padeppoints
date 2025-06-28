@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, DateTime, Enum, Integer, ForeignKey, Table, Text, Float, Date
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import datetime
 import enum
 from app.models.base import Base
 
@@ -13,8 +13,8 @@ tournament_player = Table(
 )
 
 class TournamentSystem(enum.Enum):  # Fixed: removed str inheritance
-    AMERICANO = "americano"
-    MEXICANO = "mexicano"
+    AMERICANO = "AMERICANO"
+    MEXICANO = "MEXICANO"
 
 class Tournament(Base):
     __tablename__ = "tournaments"
@@ -27,7 +27,7 @@ class Tournament(Base):
     entry_fee = Column(Float, nullable=False, default=0.0)
     max_players = Column(Integer, nullable=False, default=16)
     system = Column(Enum(TournamentSystem), nullable=False, default=TournamentSystem.AMERICANO)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
     status = Column(String, default="pending")  # pending, active, completed
     current_round = Column(Integer, default=1)

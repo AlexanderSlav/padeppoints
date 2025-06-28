@@ -1,6 +1,6 @@
-# 🎾 Padel Points Frontend
+# 🎾 Tornetic Frontend
 
-A super simple React frontend for the Padel Points tournament management system.
+A super simple React frontend for the Tornetic tournament management system.
 
 ## Features
 

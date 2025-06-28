@@ -40,7 +40,7 @@ async def lifespan(highlights_app: FastAPI):
     await disconnect_from_db(engine)
 
 app = FastAPI(
-    title="PadelPoints API",
+    title="Tornetic API",
     description="Padel Tournament Management System",
     version="0.1.0",
     lifespan=lifespan,
@@ -76,7 +76,7 @@ async def exception_handler(request: Request, call_next):
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return {"message": "PadelPoints API is running"}
+    return {"message": "Tornetic API is running"}
 
 # Include API routers
 app.include_router(api_router, prefix="/api/v1") 

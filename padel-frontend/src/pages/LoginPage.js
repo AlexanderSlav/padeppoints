@@ -45,7 +45,7 @@ const LoginPage = () => {
   return (
     <div className="container">
       <div className="header">
-        <h1>🎾 Padel Points</h1>
+        <h1>🎾 Tornetic</h1>
         <p>Tournament Management Made Simple</p>
       </div>
 
@@ -85,7 +85,7 @@ const LoginPage = () => {
         </div>
 
         <div style={{ marginTop: '32px', textAlign: 'center', color: '#718096' }}>
-          <p>New to Padel Points?</p>
+          <p>New to Tornetic?</p>
           <p>Just click "Login with Google" to get started!</p>
         </div>
       </div>

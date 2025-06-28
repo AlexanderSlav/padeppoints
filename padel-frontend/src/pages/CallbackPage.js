@@ -97,7 +97,7 @@ const CallbackPage = () => {
   return (
     <div className="container">
       <div className="header">
-        <h1>🎾 Padel Points</h1>
+        <h1>🎾 Tornetic</h1>
       </div>
 
       <div className="card">
@@ -114,20 +114,6 @@ const CallbackPage = () => {
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
             <h2 style={{ color: '#2f855a' }}>Login Successful!</h2>
             <p style={{ color: '#718096' }}>Redirecting to your dashboard...</p>
-            <div style={{ marginTop: '16px', padding: '16px', background: '#f7fafc', borderRadius: '8px' }}>
-              <button 
-                onClick={() => {
-                  const token = localStorage.getItem('access_token');
-                  const user = localStorage.getItem('user');
-                  console.log('🔍 DEBUG: Token in localStorage:', token ? 'EXISTS' : 'MISSING');
-                  console.log('🔍 DEBUG: User in localStorage:', user ? 'EXISTS' : 'MISSING');
-                  alert(`Token: ${token ? 'EXISTS' : 'MISSING'}\nUser: ${user ? 'EXISTS' : 'MISSING'}`);
-                }}
-                style={{ padding: '8px 16px', fontSize: '12px', background: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-              >
-                🔍 Debug: Check localStorage
-              </button>
-            </div>
           </div>
         )}
 

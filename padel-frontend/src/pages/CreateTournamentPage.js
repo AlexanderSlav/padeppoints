@@ -71,7 +71,7 @@ const CreateTournamentPage = () => {
     return (
       <div className="container">
         <div className="header">
-          <h1>🎾 Padel Points</h1>
+          <h1>🎾 Tornetic</h1>
         </div>
         <div className="card">
           <div style={{ textAlign: 'center' }}>
@@ -88,7 +88,7 @@ const CreateTournamentPage = () => {
   return (
     <div className="container">
       <div className="header">
-        <h1>🎾 Padel Points</h1>
+        <h1>🎾 Tornetic</h1>
         <p>Create New Tournament</p>
       </div>
 

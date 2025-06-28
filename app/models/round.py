@@ -6,7 +6,7 @@ class Round(Base):
     __tablename__ = "rounds"
     
     id = Column(String, primary_key=True)
-    tournament_id = Column(String, ForeignKey("tournament.id"), nullable=False)
+    tournament_id = Column(String, ForeignKey("tournaments.id"), nullable=False)
     round_number = Column(Integer, nullable=False, default=1)  # Added round number
     
     # Team 1 players

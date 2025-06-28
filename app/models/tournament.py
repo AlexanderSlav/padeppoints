@@ -8,7 +8,7 @@ from app.models.base import Base
 tournament_player = Table(
     "tournament_player",
     Base.metadata,
-    Column("tournament_id", String, ForeignKey("tournament.id"), primary_key=True),
+    Column("tournament_id", String, ForeignKey("tournaments.id"), primary_key=True),
     Column("player_id", String, ForeignKey("users.id"), primary_key=True),
 )
 
@@ -33,7 +33,7 @@ class Tournament(Base):
         secondary=tournament_player,
         back_populates="tournaments"
     )
-    rounds = relationship("Round", back_populates="tournaments", cascade="all, delete-orphan")
+    rounds = relationship("Round", back_populates="tournament", cascade="all, delete-orphan")
     creator = relationship("User", foreign_keys=[created_by], back_populates="created_tournaments")
 
     def __repr__(self):

@@ -26,7 +26,7 @@ class Tournament(Base):
     start_date = Column(Date, nullable=False)
     entry_fee = Column(Float, nullable=False, default=0.0)
     max_players = Column(Integer, nullable=False, default=16)
-    system = Column(Enum(TournamentSystem), nullable=False, default=TournamentSystem.AMERICANO)
+    system = Column(Enum(TournamentSystem, name='tournamentsystem', create_type=False), nullable=False, default=TournamentSystem.AMERICANO)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
     status = Column(String, default="pending")  # pending, active, completed

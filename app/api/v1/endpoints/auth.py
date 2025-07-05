@@ -137,4 +137,3 @@ async def auth_status(
     else:
         logger.info("Authentication status check: User not authenticated")
         return {"authenticated": False, "user": None}
-

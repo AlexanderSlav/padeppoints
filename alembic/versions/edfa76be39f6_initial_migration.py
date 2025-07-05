@@ -34,7 +34,7 @@ def upgrade() -> None:
     op.create_table('tournament',
     sa.Column('id', sa.String(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
-    sa.Column('system', sa.Enum('AMERICANO', 'MEXICANO', name='tournamentsystem'), nullable=False),
+    sa.Column('system', sa.Enum('AMERICANO', 'MEXICANO', name='tournamentsystem', create_type=True), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('created_by', sa.String(), nullable=False),
     sa.Column('status', sa.String(), nullable=True),
@@ -78,4 +78,5 @@ def downgrade() -> None:
     op.drop_table('tournament')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
+    
     # ### end Alembic commands ###

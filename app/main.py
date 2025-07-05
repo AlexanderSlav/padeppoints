@@ -4,6 +4,7 @@ from app.migration import run_migrations
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.openapi.utils import get_openapi
 from loguru import logger
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -39,12 +40,40 @@ async def lifespan(highlights_app: FastAPI):
     # Shutdown event.
     await disconnect_from_db(engine)
 
+def custom_openapi():
+    """Custom OpenAPI schema with authentication."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="Tornetic API",
+        version="0.1.0",
+        description="Padel Tournament Management System",
+        routes=app.routes,
+    )
+    
+    # Add security definitions
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter your JWT token obtained from Google OAuth login"
+        }
+    }
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
 app = FastAPI(
     title="Tornetic API",
     description="Padel Tournament Management System",
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Set custom OpenAPI schema
+app.openapi = custom_openapi
 
 app.add_middleware(
     CORSMiddleware,

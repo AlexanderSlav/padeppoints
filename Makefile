@@ -81,9 +81,28 @@ migration:  ## Make a new migration
 	fi
 	docker exec -it $(API_SERVICE_NAME) alembic revision --autogenerate -m "$(m)"
 
-# .PHONY: drop_db_tables
-# drop_db_tables:  ## Drop all tables in the database (for dev purposes only; be careful!)
-# 	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users; DROP TABLE IF EXISTS s3p_events; DROP TABLE IF EXISTS roles; DROP TABLE IF EXISTS streams; DROP TABLE IF EXISTS matches; DROP TABLE IF EXISTS jobs; DROP TABLE IF EXISTS alembic_version;"
+.PHONY: drop_db_tables
+drop_db_tables:  ## Drop all tables and types in the database (for dev purposes only; be careful!)
+	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users, tournaments, rounds, tournament_player, alembic_version CASCADE;"
+	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TYPE IF EXISTS tournamentsystem CASCADE;"
+
+.PHONY: reset-db
+reset-db:  ## Reset database completely and run migrations (DEV ONLY - LOSES DATA!)
+	$(MAKE) drop_db_tables
+	docker exec -it $(API_SERVICE_NAME) alembic upgrade head
+
+.PHONY: fix-migration-sync
+fix-migration-sync:  ## Fix migration sync issues (production-safe)
+	@echo "Checking migration status..."
+	docker exec -it $(API_SERVICE_NAME) alembic current
+	@echo "Running migrations..."
+	docker exec -it $(API_SERVICE_NAME) alembic upgrade head
+
+.PHONY: migration-status
+migration-status:  ## Show current migration status
+	docker exec -it $(API_SERVICE_NAME) alembic current
+	docker exec -it $(API_SERVICE_NAME) alembic history
+
 
 .PHONY: help
 help:  ## Show help

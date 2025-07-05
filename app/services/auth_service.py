@@ -1,7 +1,7 @@
 """Authentication service for Google OAuth and JWT tokens."""
 
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from fastapi import HTTPException, status
@@ -80,8 +80,8 @@ class AuthService:
     def create_access_token(self, data: Dict[str, Any]) -> str:
         """Create JWT access token."""
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(minutes=self.jwt_expire_minutes)
-        to_encode.update({"exp": expire, "iat": datetime.utcnow()})
+        expire = datetime.now(timezone.utc) + timedelta(minutes=self.jwt_expire_minutes)
+        to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc)})
         
         try:
             encoded_jwt = jwt.encode(

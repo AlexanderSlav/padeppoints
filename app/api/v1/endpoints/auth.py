@@ -1,139 +1,46 @@
-"""Authentication endpoints for Google OAuth."""
+from fastapi import APIRouter
 
-import secrets
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
-
+from app.core.auth import fastapi_users, auth_backend, google_oauth_client
 from app.core.config import settings
-from app.core.dependencies import get_current_user, get_optional_current_user
-from app.db.base import get_db
-from app.schemas.auth import (
-    TokenResponse, 
-    GoogleAuthUrlResponse, 
-    GoogleCallbackRequest,
-    UserResponse
-)
-from app.models.user import User
-from app.repositories.user_repository import UserRepository
-from app.services.auth_service import auth_service
-
+from app.schemas.user import UserRead, UserCreate, UserUpdate
 
 router = APIRouter()
 
+router.include_router(
+    fastapi_users.get_register_router(UserRead, UserCreate),
+    prefix="/register",
+    tags=["auth"],
+)
+router.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/jwt",
+    tags=["auth"],
+)
+router.include_router(
+    fastapi_users.get_reset_password_router(),
+    prefix="/reset",
+    tags=["auth"],
+)
+router.include_router(
+    fastapi_users.get_verify_router(UserRead),
+    prefix="/verify",
+    tags=["auth"],
+)
+router.include_router(
+    fastapi_users.get_oauth_router(
+        google_oauth_client,
+        auth_backend,
+        settings.JWT_SECRET_KEY,
+        redirect_url=settings.GOOGLE_REDIRECT_URI,
+        associate_by_email=True,
+        is_verified_by_default=True,
+    ),
+    prefix="/google",
+    tags=["auth"],
+)
 
-@router.get("/google/login", response_model=GoogleAuthUrlResponse)
-async def google_login():
-    """Initiate Google OAuth login flow."""
-    # Generate a random state for CSRF protection
-    state = secrets.token_urlsafe(32)
-    
-    # Get Google authorization URL
-    auth_url = auth_service.get_google_auth_url(state=state)
-    
-    return GoogleAuthUrlResponse(auth_url=auth_url, state=state)
-
-
-@router.get("/google/callback")
-async def google_callback_redirect(
-    code: str,
-    state: Optional[str] = None,
-    db: AsyncSession = Depends(get_db)
-):
-    """Handle Google OAuth callback redirect (GET request from Google)."""
-    
-    try:
-        # Exchange authorization code for access token
-        token_data = await auth_service.exchange_code_for_token(code)
-        access_token = token_data.get("access_token")
-        
-        if not access_token:
-            # Redirect to frontend with error
-            logger.error("Failed to get access token from Google")
-            return RedirectResponse(
-                url=f"{settings.FRONTEND_URL}/auth/callback?error=token_failed",
-                status_code=status.HTTP_302_FOUND
-            )
-        
-        # Get user information from Google
-        google_user_info = await auth_service.get_google_user_info(access_token)
-        
-        # Extract user data
-        user_data = auth_service.extract_user_data(google_user_info)
-        
-        # Create or update user in database
-        user_repo = UserRepository(db)
-        user = await user_repo.create_or_update_user(user_data)
-        
-        # Create JWT token
-        jwt_payload = {
-            "sub": user.id,
-            "email": user.email,
-            "full_name": user.full_name
-        }
-        jwt_token = auth_service.create_access_token(jwt_payload)
-        
-        logger.info(f"Redirecting to frontend callback page with success: {settings.FRONTEND_URL}/auth/callback?success=true&token={jwt_token}")
-        # Redirect to frontend callback page with success
-        return RedirectResponse(
-            url=f"{settings.FRONTEND_URL}/auth/callback?success=true&token={jwt_token}",
-            status_code=status.HTTP_302_FOUND
-        )
-        
-    except Exception as e:
-        logger.error(f"Google OAuth callback error: {e}")
-        # Redirect to frontend with error
-        return RedirectResponse(
-            url=f"{settings.FRONTEND_URL}/auth/callback?error=auth_failed",
-            status_code=status.HTTP_302_FOUND
-        )
-
-
-@router.post("/logout")
-async def logout(response: Response):
-    """Logout user (client should discard the token)."""
-    # Since we're using JWT tokens, we can't invalidate them server-side
-    # The client should discard the token
-    # In a production app, you might want to implement a token blacklist
-    
-    return {"message": "Successfully logged out"}
-
-
-@router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(
-    current_user: User = Depends(get_current_user)
-):
-    """Refresh user's access token."""
-    
-    # Create new JWT token
-    jwt_payload = {
-        "sub": current_user.id,
-        "email": current_user.email,
-        "full_name": current_user.full_name
-    }
-    jwt_token = auth_service.create_access_token(jwt_payload)
-    
-    return TokenResponse(
-        access_token=jwt_token,
-        token_type="bearer",
-        expires_in=settings.JWT_EXPIRE_MINUTES * 60,
-        user=UserResponse.model_validate(current_user)
-    )
-
-
-@router.get("/status")
-async def auth_status(
-    current_user: Optional[User] = Depends(get_optional_current_user)
-):
-    """Check authentication status."""
-    if current_user:
-        logger.info(f"Authentication status check: User authenticated: {current_user}")
-        return {
-            "authenticated": True,
-            "user": UserResponse.model_validate(current_user)
-        }
-    else:
-        logger.info("Authentication status check: User not authenticated")
-        return {"authenticated": False, "user": None}
+router.include_router(
+    fastapi_users.get_users_router(UserRead, UserUpdate),
+    prefix="/users",
+    tags=["users"],
+)

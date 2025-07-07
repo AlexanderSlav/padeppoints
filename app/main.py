@@ -52,13 +52,12 @@ def custom_openapi():
         routes=app.routes,
     )
     
-    # Add security definitions
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
-            "description": "Enter your JWT token obtained from Google OAuth login"
+            "description": "Enter your JWT token"
         }
     }
     

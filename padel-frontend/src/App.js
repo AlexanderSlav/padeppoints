@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import CallbackPage from './pages/CallbackPage';
 import DashboardPage from './pages/DashboardPage';
 import CreateTournamentPage from './pages/CreateTournamentPage';
+import RegisterPage from './pages/RegisterPage';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -50,13 +51,22 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Public routes */}
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           <PublicRoute>
             <LoginPage />
           </PublicRoute>
-        } 
+        }
+      />
+
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <RegisterPage />
+          </PublicRoute>
+        }
       />
       
       {/* OAuth callback route */}

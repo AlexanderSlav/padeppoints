@@ -49,40 +49,52 @@ export const authAPI = {
     return response.data;
   },
 
-  // Test login (for development)
-  testLogin: async (email = 'test@example.com') => {
-    console.log('🔍 authAPI: Test login for', email);
-    const response = await api.post('/auth/test-login', { email });
+  // Email/password login
+  loginWithEmail: async (email, password) => {
+    console.log('🔍 authAPI: Login with email', email);
+    const params = new URLSearchParams();
+    params.append('username', email);
+    params.append('password', password);
+    const response = await api.post('/auth/jwt/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    return response.data;
+  },
+
+  // Register new user
+  register: async (email, password, fullName) => {
+    console.log('🔍 authAPI: Register user', email);
+    const response = await api.post('/auth/register', {
+      email,
+      password,
+      full_name: fullName,
+    });
     return response.data;
   },
 
   // Get current user profile
   getCurrentUser: async () => {
-    console.log('🔍 authAPI: Getting current user via /auth/status');
-    const response = await api.get('/auth/status');
-    console.log('✅ authAPI: getCurrentUser response:', response.data);
-    
-    // The /auth/status endpoint returns {authenticated: true, user: {...}} or {authenticated: false, user: null}
-    if (response.data.authenticated && response.data.user) {
-      return response.data.user;
-    }
-    throw new Error('Not authenticated');
+    console.log('🔍 authAPI: Getting current user via /auth/users/me');
+    const response = await api.get('/auth/users/me');
+    return response.data;
   },
 
   // Check auth status
   getAuthStatus: async () => {
-    console.log('🔍 authAPI: Getting auth status');
-    const response = await api.get('/auth/status');
-    return response.data;
+    console.log('🔍 authAPI: Checking authentication');
+    try {
+      const user = await authAPI.getCurrentUser();
+      return { authenticated: true, user };
+    } catch {
+      return { authenticated: false, user: null };
+    }
   },
 
   // Logout
   logout: async () => {
     console.log('🔍 authAPI: Logging out');
-    const response = await api.post('/auth/logout');
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
-    return response.data;
   },
 };
 

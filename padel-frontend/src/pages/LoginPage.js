@@ -6,6 +6,8 @@ const LoginPage = () => {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleGoogleLogin = async () => {
     try {
@@ -24,19 +26,19 @@ const LoginPage = () => {
     }
   };
 
-  const handleTestLogin = async () => {
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
     try {
       setLoading(true);
       setError('');
 
-      const response = await authAPI.testLogin();
-      
-      // Store token and user data
-      login(response.user, response.access_token);
-      
+      const { access_token } = await authAPI.loginWithEmail(email, password);
+      localStorage.setItem('access_token', access_token);
+      const userData = await authAPI.getCurrentUser();
+      login(userData, access_token);
     } catch (err) {
-      setError('Test login failed');
-      console.error('Test login error:', err);
+      setError('Email login failed');
+      console.error('Email login error:', err);
     } finally {
       setLoading(false);
     }
@@ -74,19 +76,37 @@ const LoginPage = () => {
             — OR —
           </div>
 
-          <button
-            className="btn btn-secondary"
-            onClick={handleTestLogin}
-            disabled={loading}
-            style={{ width: '100%', fontSize: '16px' }}
-          >
-            {loading ? '🔄 Loading...' : '🧪 Test Login (Development)'}
-          </button>
+          <form onSubmit={handleEmailLogin} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{ padding: '8px', fontSize: '16px' }}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{ padding: '8px', fontSize: '16px' }}
+            />
+            <button
+              className="btn btn-secondary"
+              type="submit"
+              disabled={loading}
+              style={{ width: '100%', fontSize: '16px' }}
+            >
+              {loading ? '🔄 Loading...' : 'Login'}
+            </button>
+          </form>
         </div>
 
         <div style={{ marginTop: '32px', textAlign: 'center', color: '#718096' }}>
           <p>New to Tornetic?</p>
-          <p>Just click "Login with Google" to get started!</p>
+          <a href="/register">Create an account</a> or use Google
         </div>
       </div>
     </div>

@@ -25,5 +25,4 @@ fastapi_users = FastAPIUsers[User, str](get_user_manager, [auth_backend])
 google_oauth_client = GoogleOAuth2(
     settings.GOOGLE_CLIENT_ID,
     settings.GOOGLE_CLIENT_SECRET,
-    settings.GOOGLE_REDIRECT_URI,
 )

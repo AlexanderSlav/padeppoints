@@ -45,7 +45,7 @@ export const authAPI = {
   // Get Google login URL
   getGoogleLoginUrl: async () => {
     console.log('🔍 authAPI: Getting Google login URL');
-    const response = await api.get('/auth/google/login');
+    const response = await api.get('/auth/google/authorize');
     return response.data;
   },
 

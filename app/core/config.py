@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URI: str
+    GOOGLE_REDIRECT_URI: str = ""  # Optional - will be generated dynamically
     
     # Frontend URL
     FRONTEND_URL: str = "http://localhost:3000"

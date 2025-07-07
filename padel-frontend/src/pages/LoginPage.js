@@ -14,10 +14,10 @@ const LoginPage = () => {
       setLoading(true);
       setError('');
       
-      const { auth_url } = await authAPI.getGoogleLoginUrl();
+      const { authorization_url } = await authAPI.getGoogleLoginUrl();
       
       // Redirect to Google OAuth
-      window.location.href = auth_url;
+      window.location.href = authorization_url;
     } catch (err) {
       setError('Failed to start Google login');
       console.error('Google login error:', err);

@@ -70,7 +70,7 @@ const AppRoutes = () => {
       />
       
       {/* OAuth callback route */}
-      <Route path="/auth/callback" element={<CallbackPage />} />
+      <Route path="/callback" element={<CallbackPage />} />
       
       {/* Protected routes */}
       <Route 

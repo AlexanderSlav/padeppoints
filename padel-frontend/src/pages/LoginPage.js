@@ -6,6 +6,8 @@ const LoginPage = () => {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleGoogleLogin = async () => {
     try {
@@ -24,19 +26,15 @@ const LoginPage = () => {
     }
   };
 
-  const handleTestLogin = async () => {
+  const handleEmailLogin = async () => {
     try {
       setLoading(true);
       setError('');
-
-      const response = await authAPI.testLogin();
-      
-      // Store token and user data
+      const response = await authAPI.login(email, password);
       login(response.user, response.access_token);
-      
     } catch (err) {
-      setError('Test login failed');
-      console.error('Test login error:', err);
+      setError('Login failed');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -70,17 +68,27 @@ const LoginPage = () => {
             {loading ? '🔄 Loading...' : '🔐 Login with Google'}
           </button>
 
-          <div style={{ textAlign: 'center', color: '#718096', margin: '16px 0' }}>
-            — OR —
-          </div>
-
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ padding: '12px', fontSize: '16px' }}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ padding: '12px', fontSize: '16px' }}
+          />
           <button
             className="btn btn-secondary"
-            onClick={handleTestLogin}
+            onClick={handleEmailLogin}
             disabled={loading}
             style={{ width: '100%', fontSize: '16px' }}
           >
-            {loading ? '🔄 Loading...' : '🧪 Test Login (Development)'}
+            {loading ? '🔄 Loading...' : 'Login'}
           </button>
         </div>
 

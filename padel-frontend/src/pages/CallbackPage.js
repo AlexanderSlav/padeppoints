@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../components/AuthContext';
+import { authAPI } from '../services/api';
 
 const CallbackPage = () => {
   const { login } = useAuth();
@@ -24,68 +25,23 @@ const CallbackPage = () => {
     try {
       console.log('🔍 CallbackPage: Parsing URL parameters');
       const urlParams = new URLSearchParams(window.location.search);
-      const success = urlParams.get('success');
-      const token = urlParams.get('token');
-      const error = urlParams.get('error');
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
 
-      console.log('🔍 CallbackPage: URL params - success:', success, 'token:', token ? 'EXISTS' : 'MISSING', 'error:', error);
-
-      if (error) {
-        console.log('❌ CallbackPage: Error in URL params:', error);
-        setStatus('error');
-        switch (error) {
-          case 'token_failed':
-            setError('Failed to get access token from Google');
-            break;
-          case 'auth_failed':
-            setError('Authentication failed. Please try again.');
-            break;
-          default:
-            setError('Authentication was cancelled or failed');
-        }
-        return;
-      }
-
-      if (!success || !token) {
-        console.log('❌ CallbackPage: Missing success or token params');
+      if (!code || !state) {
+        console.log('❌ CallbackPage: Missing code or state params');
         setStatus('error');
         setError('Invalid authentication response');
         return;
       }
 
-      // Decode the user info from the JWT token
-      try {
-        console.log('🔍 CallbackPage: Decoding JWT token');
-        const tokenParts = token.split('.');
-        const payload = JSON.parse(atob(tokenParts[1]));
-        console.log('🔍 CallbackPage: JWT payload:', payload);
-        
-        const userData = {
-          id: payload.sub,
-          email: payload.email,
-          full_name: payload.full_name
-        };
+      const data = await authAPI.completeGoogleLogin(code, state);
+      login(data.user, data.access_token);
 
-        console.log('🔍 CallbackPage: Extracted user data:', userData);
-
-        // Store token and user data
-        console.log('✅ CallbackPage: Calling login() with user data and token');
-        login(userData, token);
-        
-        setStatus('success');
-        console.log('✅ CallbackPage: Login successful, redirecting in 1.5s');
-        
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          console.log('🔄 CallbackPage: Redirecting to dashboard');
-          window.location.href = '/dashboard';
-        }, 1500);
-
-      } catch (jwtError) {
-        console.error('❌ CallbackPage: JWT decode error:', jwtError);
-        setStatus('error');
-        setError('Invalid token received');
-      }
+      setStatus('success');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
 
     } catch (err) {
       console.error('❌ CallbackPage: General callback error:', err);

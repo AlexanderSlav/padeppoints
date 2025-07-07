@@ -42,44 +42,54 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  // Get Google login URL
+  // Get Google OAuth authorization URL
   getGoogleLoginUrl: async () => {
     console.log('🔍 authAPI: Getting Google login URL');
-    const response = await api.get('/auth/google/login');
+    const response = await api.get('/auth/google/authorize');
     return response.data;
   },
 
-  // Test login (for development)
-  testLogin: async (email = 'test@example.com') => {
-    console.log('🔍 authAPI: Test login for', email);
-    const response = await api.post('/auth/test-login', { email });
+  // Complete OAuth login
+  completeGoogleLogin: async (code, state) => {
+    console.log('🔍 authAPI: Completing Google login');
+    const response = await api.get('/auth/google/callback', {
+      params: { code, state },
+    });
+    return response.data;
+  },
+
+  // Login with email and password
+  login: async (email, password) => {
+    console.log('🔍 authAPI: Login with credentials for', email);
+    const form = new URLSearchParams();
+    form.append('username', email);
+    form.append('password', password);
+    const response = await api.post('/auth/jwt/login', form);
+    return response.data;
+  },
+
+  // Register a new account
+  register: async (email, password, fullName) => {
+    console.log('🔍 authAPI: Register new user', email);
+    const response = await api.post('/auth/register', {
+      email,
+      password,
+      full_name: fullName,
+    });
     return response.data;
   },
 
   // Get current user profile
   getCurrentUser: async () => {
-    console.log('🔍 authAPI: Getting current user via /auth/status');
-    const response = await api.get('/auth/status');
-    console.log('✅ authAPI: getCurrentUser response:', response.data);
-    
-    // The /auth/status endpoint returns {authenticated: true, user: {...}} or {authenticated: false, user: null}
-    if (response.data.authenticated && response.data.user) {
-      return response.data.user;
-    }
-    throw new Error('Not authenticated');
-  },
-
-  // Check auth status
-  getAuthStatus: async () => {
-    console.log('🔍 authAPI: Getting auth status');
-    const response = await api.get('/auth/status');
+    console.log('🔍 authAPI: Getting current user');
+    const response = await api.get('/auth/users/me');
     return response.data;
   },
 
   // Logout
   logout: async () => {
     console.log('🔍 authAPI: Logging out');
-    const response = await api.post('/auth/logout');
+    const response = await api.post('/auth/jwt/logout');
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     return response.data;

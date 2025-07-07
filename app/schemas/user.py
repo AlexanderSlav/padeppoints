@@ -1,28 +1,19 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import EmailStr
+from fastapi_users import schemas as fu_schemas
 
 
-class UserRead(BaseModel):
-    id: str
-    email: EmailStr
+class UserRead(fu_schemas.BaseUser[str]):
     full_name: Optional[str] = None
     picture: Optional[str] = None
-    is_active: bool
-    is_superuser: bool
-    is_verified: bool
 
     model_config = {"from_attributes": True}
 
 
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
+class UserCreate(fu_schemas.BaseUserCreate):
     full_name: Optional[str] = None
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(fu_schemas.BaseUserUpdate):
     full_name: Optional[str] = None
     picture: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_superuser: Optional[bool] = None
-    is_verified: Optional[bool] = None

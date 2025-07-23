@@ -18,28 +18,24 @@ load_dotenv()
 
 router = APIRouter()
 
-# Register endpoint - remove prefix so it matches /auth/register
 router.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="",
     tags=["auth"],
 )
 
-# JWT auth endpoints
 router.include_router(
     fastapi_users.get_auth_router(auth_backend),
     prefix="/jwt",
     tags=["auth"],
 )
 
-# Password reset endpoints
 router.include_router(
     fastapi_users.get_reset_password_router(),
     prefix="/reset",
     tags=["auth"],
 )
 
-# Verification endpoints
 router.include_router(
     fastapi_users.get_verify_router(UserRead),
     prefix="/verify",
@@ -160,7 +156,7 @@ async def create_or_update_user(db: AsyncSession, user_info: dict):
         
         if user:
             # Update existing user
-            print(f"🔄 Updating existing user: {user.email}")
+            logger.info(f"🔄 Updating existing user: {user.email}")
             user.full_name = user_info.get("name", user.full_name)
             user.picture = user_info.get("picture", user.picture)
             user.is_verified = True
@@ -184,10 +180,3 @@ async def create_or_update_user(db: AsyncSession, user_info: dict):
     except Exception as e:
         print(f"❌ Database Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Database error during user creation")
-
-# Users management endpoints
-router.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/users",
-    tags=["users"],
-)

@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import Optional, List
 from pydantic import BaseModel, field_validator
 from enum import Enum
+from app.models.tournament import TournamentStatus
 
 class TournamentSystem(str, Enum):
     AMERICANO = "AMERICANO"
@@ -49,6 +50,35 @@ class TournamentResponse(TournamentBase):
     current_round: int
     
     model_config = {"from_attributes": True}
+
+class TournamentFilter(BaseModel):
+    """Query parameters for filtering tournaments"""
+    format: Optional[TournamentSystem] = None
+    status: Optional[str] = None  # pending, active, completed
+    start_date_from: Optional[date] = None
+    start_date_to: Optional[date] = None
+    location: Optional[str] = None
+    created_by_me: Optional[bool] = False  # Filter to show only user's tournaments
+
+class TournamentJoinResponse(BaseModel):
+    success: bool
+    message: str
+    current_players: Optional[int] = None
+    max_players: Optional[int] = None
+
+class TournamentPlayerResponse(BaseModel):
+    id: str
+    full_name: str
+    email: str
+
+class TournamentPlayersResponse(BaseModel):
+    tournament_id: str
+    tournament_name: str
+    current_players: int
+    max_players: int
+    is_full: bool
+    can_join: bool
+    players: List[TournamentPlayerResponse]
 
 class TournamentListResponse(BaseModel):
     tournaments: List[TournamentResponse]

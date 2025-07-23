@@ -1,8 +1,8 @@
 """User repository for database operations."""
 
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 
 from app.models.user import User
 from app.repositories.base import BaseRepository
@@ -53,4 +53,76 @@ class UserRepository(BaseRepository[User]):
             user.is_active = True
             await self.db.commit()
             return True
-        return False 
+        return False
+    
+    async def search_users(
+        self, 
+        search_query: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[User]:
+        """
+        Search users by name or email with optional pagination.
+        
+        Args:
+            search_query: Search term for name or email (case-insensitive, prefix matching)
+            limit: Maximum number of results to return
+            offset: Number of results to skip for pagination
+        
+        Returns:
+            List of matching active users
+        """
+        query = select(self.model).filter(self.model.is_active == True)
+        
+        if search_query:
+            search_pattern = f"%{search_query.lower()}%"
+            query = query.filter(
+                or_(
+                    func.lower(self.model.full_name).like(search_pattern),
+                    func.lower(self.model.email).like(search_pattern)
+                )
+            )
+        
+        # Order by relevance: exact matches first, then prefix matches, then contains
+        if search_query:
+            search_lower = search_query.lower()
+            query = query.order_by(
+                # Exact match on full name first
+                func.lower(self.model.full_name) == search_lower,
+                # Prefix match on full name second  
+                func.lower(self.model.full_name).like(f"{search_lower}%"),
+                # Then by full name alphabetically
+                self.model.full_name
+            )
+        else:
+            query = query.order_by(self.model.full_name)
+            
+        # Apply pagination
+        query = query.offset(offset).limit(limit)
+        
+        result = await self.db.execute(query)
+        return result.scalars().all()
+    
+    async def count_users(self, search_query: Optional[str] = None) -> int:
+        """
+        Count users matching search criteria.
+        
+        Args:
+            search_query: Search term for name or email
+            
+        Returns:
+            Total count of matching active users
+        """
+        query = select(func.count(self.model.id)).filter(self.model.is_active == True)
+        
+        if search_query:
+            search_pattern = f"%{search_query.lower()}%"
+            query = query.filter(
+                or_(
+                    func.lower(self.model.full_name).like(search_pattern),
+                    func.lower(self.model.email).like(search_pattern)
+                )
+            )
+        
+        result = await self.db.execute(query)
+        return result.scalar() or 0 

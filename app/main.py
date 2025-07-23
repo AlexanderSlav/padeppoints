@@ -22,12 +22,10 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(highlights_app: FastAPI):
     """Lifespan events."""
-    # Startup event.
     engine: AsyncEngine = await configure_db(settings.db.dsn, is_prod=False)
 
     logger.info(f"Starting {highlights_app.title}.")
 
-    # Run migrations.
     try:
         run_migrations(settings.db.dsn)  # sync is fine here, see migration.py
     except Exception as exc:
@@ -37,32 +35,8 @@ async def lifespan(highlights_app: FastAPI):
 
     logger.info(f"Ending {highlights_app.title}.")
 
-    # Shutdown event.
     await disconnect_from_db(engine)
 
-def custom_openapi():
-    """Custom OpenAPI schema with authentication."""
-    if app.openapi_schema:
-        return app.openapi_schema
-    
-    openapi_schema = get_openapi(
-        title="Tornetic API",
-        version="0.1.0",
-        description="Padel Tournament Management System",
-        routes=app.routes,
-    )
-    
-    openapi_schema["components"]["securitySchemes"] = {
-        "BearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
-            "description": "Enter your JWT token"
-        }
-    }
-    
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
 
 app = FastAPI(
     title="Tornetic API",
@@ -71,8 +45,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Set custom OpenAPI schema
-app.openapi = custom_openapi
 
 app.add_middleware(
     CORSMiddleware,
@@ -106,5 +78,4 @@ async def root():
     """Root endpoint."""
     return {"message": "Tornetic API is running"}
 
-# Include API routers
 app.include_router(api_router, prefix="/api/v1") 

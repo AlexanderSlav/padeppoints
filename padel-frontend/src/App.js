@@ -6,6 +6,8 @@ import CallbackPage from './pages/CallbackPage';
 import DashboardPage from './pages/DashboardPage';
 import CreateTournamentPage from './pages/CreateTournamentPage';
 import RegisterPage from './pages/RegisterPage';
+import TournamentDiscoveryPage from './pages/TournamentDiscoveryPage';
+import TournamentDetailPage from './pages/TournamentDetailPage';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -87,6 +89,24 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <CreateTournamentPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/tournaments" 
+        element={
+          <ProtectedRoute>
+            <TournamentDiscoveryPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/tournaments/:id" 
+        element={
+          <ProtectedRoute>
+            <TournamentDetailPage />
           </ProtectedRoute>
         } 
       />

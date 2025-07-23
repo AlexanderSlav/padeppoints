@@ -103,6 +103,14 @@ migration-status:  ## Show current migration status
 	docker exec -it $(API_SERVICE_NAME) alembic current
 	docker exec -it $(API_SERVICE_NAME) alembic history
 
+.PHONY: create-superuser
+create-superuser:  ## Create the first superuser (run interactively)
+	python scripts/create_first_superuser.py
+
+.PHONY: create-superuser-docker
+create-superuser-docker:  ## Create the first superuser in Docker container
+	docker exec -it $(API_SERVICE_NAME) python scripts/create_first_superuser.py
+
 
 .PHONY: help
 help:  ## Show help

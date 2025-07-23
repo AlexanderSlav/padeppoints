@@ -74,8 +74,8 @@ export const authAPI = {
 
   // Get current user profile
   getCurrentUser: async () => {
-    console.log('🔍 authAPI: Getting current user via /auth/users/me');
-    const response = await api.get('/auth/users/me');
+    console.log('🔍 authAPI: Getting current user ...');
+    const response = await api.get('/users/me');
     return response.data;
   },
 
@@ -100,10 +100,51 @@ export const authAPI = {
 
 // Tournament API
 export const tournamentAPI = {
-  // Get all tournaments
-  getTournaments: async () => {
-    console.log('🔍 tournamentAPI: Getting all tournaments');
-    const response = await api.get('/tournaments');
+  // Get all tournaments with filters
+  getTournaments: async (filters = {}) => {
+    console.log('🔍 tournamentAPI: Getting tournaments with filters', filters);
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+    const response = await api.get(`/tournaments?${params.toString()}`);
+    return response.data;
+  },
+
+  // Get my tournaments (created by me)
+  getMyTournaments: async () => {
+    console.log('🔍 tournamentAPI: Getting my tournaments');
+    const response = await api.get('/tournaments/my');
+    return response.data;
+  },
+
+  // Get joined tournaments
+  getJoinedTournaments: async () => {
+    console.log('🔍 tournamentAPI: Getting joined tournaments');
+    const response = await api.get('/tournaments/joined');
+    return response.data;
+  },
+
+  // Get upcoming tournaments
+  getUpcomingTournaments: async (limit = 10) => {
+    console.log('🔍 tournamentAPI: Getting upcoming tournaments');
+    const response = await api.get(`/tournaments/upcoming?limit=${limit}`);
+    return response.data;
+  },
+
+  // Get tournament formats
+  getTournamentFormats: async () => {
+    console.log('🔍 tournamentAPI: Getting tournament formats');
+    const response = await api.get('/tournaments/formats');
+    return response.data;
+  },
+
+  // Get tournament statuses
+  getTournamentStatuses: async () => {
+    console.log('🔍 tournamentAPI: Getting tournament statuses');
+    const response = await api.get('/tournaments/statuses');
     return response.data;
   },
 
@@ -132,6 +173,103 @@ export const tournamentAPI = {
   deleteTournament: async (id) => {
     console.log('🔍 tournamentAPI: Deleting tournament', id);
     const response = await api.delete(`/tournaments/${id}`);
+    return response.data;
+  },
+
+  // Join tournament
+  joinTournament: async (id) => {
+    console.log('🔍 tournamentAPI: Joining tournament', id);
+    const response = await api.post(`/tournaments/${id}/join`);
+    return response.data;
+  },
+
+  // Leave tournament
+  leaveTournament: async (id) => {
+    console.log('🔍 tournamentAPI: Leaving tournament', id);
+    const response = await api.post(`/tournaments/${id}/leave`);
+    return response.data;
+  },
+
+  // Check if can join tournament
+  canJoinTournament: async (id) => {
+    console.log('🔍 tournamentAPI: Checking can join tournament', id);
+    const response = await api.get(`/tournaments/${id}/can-join`);
+    return response.data;
+  },
+
+  // Get tournament players
+  getTournamentPlayers: async (id) => {
+    console.log('🔍 tournamentAPI: Getting tournament players', id);
+    const response = await api.get(`/tournaments/${id}/players`);
+    return response.data;
+  },
+
+  // Start tournament
+  startTournament: async (id) => {
+    console.log('🔍 tournamentAPI: Starting tournament', id);
+    const response = await api.post(`/tournaments/${id}/start`);
+    return response.data;
+  },
+
+  // Get current round matches
+  getCurrentRoundMatches: async (id) => {
+    console.log('🔍 tournamentAPI: Getting current round matches', id);
+    const response = await api.get(`/tournaments/${id}/matches/current`);
+    return response.data;
+  },
+
+  // Record match result
+  recordMatchResult: async (matchId, team1Score, team2Score) => {
+    console.log('🔍 tournamentAPI: Recording match result', matchId);
+    const response = await api.put(`/tournaments/matches/${matchId}/result`, {
+      team1_score: team1Score,
+      team2_score: team2Score
+    });
+    return response.data;
+  },
+
+  // Get tournament leaderboard
+  getTournamentLeaderboard: async (id) => {
+    console.log('🔍 tournamentAPI: Getting tournament leaderboard', id);
+    const response = await api.get(`/tournaments/${id}/leaderboard`);
+    return response.data;
+  },
+
+  // Get tournament scores
+  getTournamentScores: async (id) => {
+    console.log('🔍 tournamentAPI: Getting tournament scores', id);
+    const response = await api.get(`/tournaments/${id}/scores`);
+    return response.data;
+  },
+
+  // Add player to tournament (organizer only)
+  addPlayerToTournament: async (tournamentId, playerId) => {
+    console.log('🔍 tournamentAPI: Adding player to tournament', tournamentId, playerId);
+    const response = await api.post(`/tournaments/${tournamentId}/add-player`, {
+      player_id: playerId
+    });
+    return response.data;
+  },
+
+  // Remove player from tournament (organizer only)
+  removePlayerFromTournament: async (tournamentId, playerId) => {
+    console.log('🔍 tournamentAPI: Removing player from tournament', tournamentId, playerId);
+    const response = await api.post(`/tournaments/${tournamentId}/remove-player`, {
+      player_id: playerId
+    });
+    return response.data;
+  },
+};
+
+// User API
+export const userAPI = {
+  // Search users
+  searchUsers: async (searchQuery = '', limit = 10) => {
+    console.log('🔍 userAPI: Searching users', searchQuery);
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    params.append('limit', limit.toString());
+    const response = await api.get(`/users?${params.toString()}`);
     return response.data;
   },
 };

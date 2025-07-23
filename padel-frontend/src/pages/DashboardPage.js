@@ -5,6 +5,8 @@ import { tournamentAPI } from '../services/api';
 const DashboardPage = () => {
   const { user, logout } = useAuth();
   const [tournaments, setTournaments] = useState([]);
+  const [joinedTournaments, setJoinedTournaments] = useState([]);
+  const [upcomingTournaments, setUpcomingTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -15,8 +17,9 @@ const DashboardPage = () => {
   const loadTournaments = async () => {
     try {
       setLoading(true);
-      const data = await tournamentAPI.getTournaments();
-      setTournaments(data);
+      // Load tournaments created by me
+      const myTournaments = await tournamentAPI.getMyTournaments();
+      setTournaments(myTournaments);
     } catch (err) {
       setError('Failed to load tournaments');
       console.error('Load tournaments error:', err);
@@ -63,13 +66,47 @@ const DashboardPage = () => {
         </button>
       </div>
 
-      {/* Actions */}
+      {/* Navigation */}
+      <div className="card" style={{ marginBottom: '24px' }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#2d3748' }}>Quick Actions</h3>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '16px'
+        }}>
+          <a href="/tournaments" style={{
+            display: 'block',
+            padding: '16px 24px',
+            backgroundColor: '#4299e1',
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: '8px',
+            textAlign: 'center',
+            fontSize: '16px',
+            fontWeight: '600'
+          }}>
+            🔍 Discover Tournaments
+          </a>
+          <a href="/create-tournament" style={{
+            display: 'block',
+            padding: '16px 24px',
+            backgroundColor: '#48bb78',
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: '8px',
+            textAlign: 'center',
+            fontSize: '16px',
+            fontWeight: '600'
+          }}>
+            + Create Tournament
+          </a>
+        </div>
+      </div>
+
+      {/* My Tournaments */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h2 style={{ margin: 0, color: '#2d3748' }}>Your Tournaments</h2>
-          <a href="/create-tournament" className="btn">
-            + Create Tournament
-          </a>
         </div>
 
         {error && (
@@ -124,12 +161,13 @@ const DashboardPage = () => {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
+                    <a 
+                      href={`/tournaments/${tournament.id}`}
                       className="btn btn-secondary"
-                      style={{ fontSize: '14px', padding: '6px 12px' }}
+                      style={{ fontSize: '14px', padding: '6px 12px', textDecoration: 'none' }}
                     >
-                      View
-                    </button>
+                      View Details
+                    </a>
                   </div>
                 </div>
               </div>

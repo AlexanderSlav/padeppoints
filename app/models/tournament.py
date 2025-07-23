@@ -16,6 +16,11 @@ class TournamentSystem(enum.Enum):  # Fixed: removed str inheritance
     AMERICANO = "AMERICANO"
     MEXICANO = "MEXICANO"
 
+class TournamentStatus(enum.Enum):
+    PENDING = "pending"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+
 class Tournament(Base):
     __tablename__ = "tournaments"
 
@@ -29,7 +34,7 @@ class Tournament(Base):
     system = Column(Enum(TournamentSystem, name='tournamentsystem', create_type=False), nullable=False, default=TournamentSystem.AMERICANO)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
-    status = Column(String, default="pending")  # pending, active, completed
+    status = Column(String, default=TournamentStatus.PENDING.value)
     current_round = Column(Integer, default=1)
     
     # Relationships

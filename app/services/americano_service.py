@@ -62,6 +62,22 @@ class AmericanoTournamentService(BaseTournamentFormat):
         # For simplicity, let's use a round-robin approach
         # where we ensure good distribution
         return self.total_players - 1 if self.total_players > 4 else 3
+
+    @staticmethod
+    def calculate_total_rounds(num_players: int) -> int:
+        """Calculate total rounds for a given player count."""
+        return num_players - 1 if num_players > 4 else 3
+
+    @staticmethod
+    def estimate_duration(num_players: int, courts: int, match_minutes: int = 20) -> tuple[int, int]:
+        """Estimate tournament duration in minutes and return total rounds."""
+        if num_players < 4 or num_players % 2 != 0 or courts < 1:
+            raise ValueError("Invalid players or courts")
+
+        total_rounds = AmericanoTournamentService.calculate_total_rounds(num_players)
+        matches_per_round = num_players // 4
+        minutes_per_round = math.ceil(matches_per_round / courts) * match_minutes
+        return total_rounds * minutes_per_round, total_rounds
     
     def _generate_round_robin_rounds(self, player_ids: List[str]) -> List[List[Tuple[str, str, str, str]]]:
         """

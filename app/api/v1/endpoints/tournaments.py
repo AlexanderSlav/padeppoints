@@ -20,6 +20,7 @@ from app.schemas.tournament import (
 )
 from app.schemas.round import MatchResultUpdate
 from app.repositories.tournament_repository import TournamentRepository
+from app.repositories.round_repository import RoundRepository
 from app.services.tournament_service import TournamentService
 from app.db.base import get_db
 from app.core.dependencies import get_current_user, get_tournament_as_organizer, get_tournament_for_user
@@ -139,6 +140,27 @@ async def get_tournament_statuses():
             {"value": TournamentStatus.ACTIVE.value, "name": "Active"},
             {"value": TournamentStatus.COMPLETED.value, "name": "Completed"},
         ]
+    }
+
+
+@router.get("/estimate-duration")
+async def estimate_tournament_duration(
+    players: int = Query(..., ge=4),
+    courts: int = Query(1, ge=1),
+    system: TournamentSystem = Query(TournamentSystem.AMERICANO),
+    current_user: User = Depends(get_current_user)
+):
+    """Estimate tournament duration for given settings."""
+    if system != TournamentSystem.AMERICANO:
+        raise HTTPException(status_code=400, detail="Only Americano supported")
+
+    minutes, rounds = AmericanoTournamentService.estimate_duration(players, courts)
+    return {
+        "system": system.value,
+        "players": players,
+        "courts": courts,
+        "total_rounds": rounds,
+        "estimated_minutes": minutes
     }
 
 
@@ -428,4 +450,16 @@ async def get_player_scores(
         scores = await tournament_service.get_player_scores(tournament_id)
         return {"tournament_id": tournament_id, "scores": scores}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) 
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{tournament_id}/rounds", response_model=List[RoundResponse])
+async def get_all_rounds(
+    tournament_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all scheduled rounds for a tournament."""
+    round_repo = RoundRepository(db)
+    rounds = await round_repo.get_rounds_by_tournament(tournament_id)
+    return rounds

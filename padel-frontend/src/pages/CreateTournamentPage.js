@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { tournamentAPI } from '../services/api';
 
@@ -7,6 +7,7 @@ const CreateTournamentPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [estimatedDuration, setEstimatedDuration] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -14,7 +15,8 @@ const CreateTournamentPage = () => {
     location: '',
     start_date: '',
     entry_fee: '',
-    max_players: '16'
+    max_players: '16',
+    courts: '1'
   });
 
   const handleInputChange = (e) => {
@@ -24,6 +26,25 @@ const CreateTournamentPage = () => {
       [name]: value
     }));
   };
+
+  useEffect(() => {
+    const calc = async () => {
+      try {
+        const players = parseInt(formData.max_players);
+        const courts = parseInt(formData.courts);
+        if (players >= 4 && courts > 0) {
+          const data = await tournamentAPI.estimateDuration('AMERICANO', players, courts);
+          setEstimatedDuration(data);
+        } else {
+          setEstimatedDuration(null);
+        }
+      } catch (err) {
+        console.error('Estimate duration error', err);
+        setEstimatedDuration(null);
+      }
+    };
+    calc();
+  }, [formData.max_players, formData.courts]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -194,21 +215,38 @@ const CreateTournamentPage = () => {
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="max_players">Max Players</label>
-              <select
-                id="max_players"
-                name="max_players"
-                value={formData.max_players}
-                onChange={handleInputChange}
-              >
-                <option value="8">8 players</option>
-                <option value="16">16 players</option>
-                <option value="32">32 players</option>
-                <option value="64">64 players</option>
-              </select>
-            </div>
+          <div className="form-group">
+            <label htmlFor="max_players">Max Players</label>
+            <select
+              id="max_players"
+              name="max_players"
+              value={formData.max_players}
+              onChange={handleInputChange}
+            >
+              <option value="8">8 players</option>
+              <option value="16">16 players</option>
+              <option value="32">32 players</option>
+              <option value="64">64 players</option>
+            </select>
           </div>
+
+          <div className="form-group">
+            <label htmlFor="courts">Courts</label>
+            <input
+              type="number"
+              id="courts"
+              name="courts"
+              min="1"
+              value={formData.courts}
+              onChange={handleInputChange}
+            />
+            {estimatedDuration && (
+              <div style={{ color: '#718096', fontSize: '12px' }}>
+                Approx. {Math.floor(estimatedDuration.estimated_minutes/60)}h {estimatedDuration.estimated_minutes%60}m ({estimatedDuration.total_rounds} rounds)
+              </div>
+            )}
+          </div>
+        </div>
 
           <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
             <button

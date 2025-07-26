@@ -218,6 +218,21 @@ export const tournamentAPI = {
     return response.data;
   },
 
+  // Get all rounds
+  getAllRounds: async (id) => {
+    console.log('🔍 tournamentAPI: Getting all rounds', id);
+    const response = await api.get(`/tournaments/${id}/rounds`);
+    return response.data;
+  },
+
+  // Estimate duration
+  estimateDuration: async (system, players, courts) => {
+    console.log('🔍 tournamentAPI: Estimating duration', system, players, courts);
+    const params = new URLSearchParams({ system, players, courts });
+    const response = await api.get(`/tournaments/estimate-duration?${params.toString()}`);
+    return response.data;
+  },
+
   // Record match result
   recordMatchResult: async (matchId, team1Score, team2Score) => {
     console.log('🔍 tournamentAPI: Recording match result', matchId);

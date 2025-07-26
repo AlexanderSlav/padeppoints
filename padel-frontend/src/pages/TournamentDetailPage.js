@@ -9,6 +9,7 @@ const TournamentDetailPage = () => {
   const [tournament, setTournament] = useState(null);
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]);
+  const [allRounds, setAllRounds] = useState([]);
   const [leaderboard, setLeaderboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,13 +25,15 @@ const TournamentDetailPage = () => {
   const loadTournamentData = async () => {
     try {
       setLoading(true);
-      const [tournamentData, playersData] = await Promise.all([
+      const [tournamentData, playersData, roundsData] = await Promise.all([
         tournamentAPI.getTournament(id),
-        tournamentAPI.getTournamentPlayers(id)
+        tournamentAPI.getTournamentPlayers(id),
+        tournamentAPI.getAllRounds(id)
       ]);
       
       setTournament(tournamentData);
       setPlayers(playersData.players || []);
+      setAllRounds(roundsData || []);
 
       // Load matches if tournament is active
       if (tournamentData.status === 'active') {
@@ -371,7 +374,7 @@ const TournamentDetailPage = () => {
             display: 'flex', 
             borderBottom: '1px solid #e2e8f0' 
           }}>
-            {['overview', 'players', 'matches', 'leaderboard'].map(tab => (
+            {['overview', 'players', 'matches', 'schedule', 'leaderboard'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -407,14 +410,18 @@ const TournamentDetailPage = () => {
             )}
             
             {activeTab === 'matches' && (
-              <MatchesTab 
-                matches={matches} 
+              <MatchesTab
+                matches={matches}
                 tournament={tournament}
                 isCreatedByMe={isCreatedByMe}
                 onRecordResult={handleRecordResult}
               />
             )}
-            
+
+            {activeTab === 'schedule' && (
+              <ScheduleTab rounds={allRounds} />
+            )}
+
             {activeTab === 'leaderboard' && (
               <LeaderboardTab leaderboard={leaderboard} tournament={tournament} />
             )}
@@ -845,6 +852,46 @@ const MatchesTab = ({ matches, tournament, isCreatedByMe, onRecordResult }) => {
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+const ScheduleTab = ({ rounds }) => {
+  if (!rounds || rounds.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', color: '#718096', padding: '40px' }}>
+        No rounds generated yet.
+      </div>
+    );
+  }
+
+  const grouped = rounds.reduce((acc, match) => {
+    acc[match.round_number] = acc[match.round_number] || [];
+    acc[match.round_number].push(match);
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', marginBottom: '16px' }}>
+        All Scheduled Rounds
+      </h3>
+      {Object.keys(grouped).map(num => (
+        <div key={num} style={{ marginBottom: '24px' }}>
+          <h4 style={{ color: '#2d3748', marginBottom: '8px' }}>Round {num}</h4>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {grouped[num].map(match => (
+              <div key={match.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span>{match.team1_player1.full_name || match.team1_player1.email} &amp; {match.team1_player2.full_name || match.team1_player2.email}</span>
+                  <span>vs</span>
+                  <span>{match.team2_player1.full_name || match.team2_player1.email} &amp; {match.team2_player2.full_name || match.team2_player2.email}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

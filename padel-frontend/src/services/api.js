@@ -305,6 +305,13 @@ export const tournamentAPI = {
     });
     return response.data;
   },
+
+  // Advance tournament to next round
+  advanceToNextRound: async (tournamentId) => {
+    console.log('🔍 tournamentAPI: Advancing tournament to next round', tournamentId);
+    const response = await api.post(`/tournaments/${tournamentId}/advance-round`);
+    return response.data;
+  },
 };
 
 // User API

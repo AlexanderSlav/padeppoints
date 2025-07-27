@@ -224,7 +224,7 @@ class TournamentService:
             if player:
                 result_list.append({
                     "player_id": player_id,
-                    "player_name": f"{player.first_name} {player.last_name}",
+                    "player_name": player.full_name or player.email or "Unknown Player",
                     "email": player.email,
                     "score": score,
                     "rank": len(result_list) + 1
@@ -254,7 +254,7 @@ class TournamentService:
             if winner:
                 return {
                     "player_id": winner_id,
-                    "player_name": f"{winner.first_name} {winner.last_name}",
+                    "player_name": winner.full_name or winner.email or "Unknown Player",
                     "email": winner.email,
                     "score": player_scores.get(winner_id, 0)
                 }

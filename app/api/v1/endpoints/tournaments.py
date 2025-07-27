@@ -576,3 +576,72 @@ async def get_all_rounds(
         logger.error(f"Error in get_all_rounds: {str(e)}")
         # Return empty list instead of crashing
         return []
+
+
+@router.post("/{tournament_id}/advance-round")
+async def advance_to_next_round(
+    tournament: Tournament = Depends(get_tournament_as_organizer),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Manually advance tournament to next round (organizer only)"""
+    logger.info(f"Advancing tournament {tournament.id} to next round by user {current_user.id}")
+    
+    try:
+        if tournament.status != TournamentStatus.ACTIVE.value:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot advance round. Tournament status: {tournament.status}"
+            )
+        
+        # Check if all matches in current round are completed
+        result = await db.execute(
+            select(Round)
+            .filter(Round.tournament_id == tournament.id)
+            .filter(Round.round_number == tournament.current_round)
+        )
+        current_round_matches = result.scalars().all()
+        
+        if not current_round_matches:
+            raise HTTPException(
+                status_code=400, 
+                detail="No matches found for current round"
+            )
+        
+        incomplete_matches = [match for match in current_round_matches if not match.is_completed]
+        if incomplete_matches:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot advance round. {len(incomplete_matches)} matches are still incomplete"
+            )
+        
+        # Initialize tournament service
+        tournament_service = TournamentService(db)
+        format_service = tournament_service.get_format_service(tournament)
+        
+        # Check if tournament should be completed
+        if format_service.is_tournament_complete(tournament.current_round + 1):
+            tournament.status = TournamentStatus.COMPLETED.value
+            logger.info(f"Tournament {tournament.id} completed")
+        else:
+            tournament.current_round += 1
+            logger.info(f"Tournament {tournament.id} advanced to round {tournament.current_round}")
+        
+        await db.commit()
+        await db.refresh(tournament)
+        
+        return {
+            "success": True,
+            "message": f"Tournament {'completed' if tournament.status == TournamentStatus.COMPLETED.value else f'advanced to round {tournament.current_round}'}",
+            "tournament": tournament
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error advancing tournament {tournament.id}: {str(e)}")
+        logger.exception("Full exception details:")
+        raise HTTPException(
+            status_code=500, 
+            detail="An unexpected error occurred while advancing the tournament"
+        )

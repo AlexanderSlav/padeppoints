@@ -117,6 +117,19 @@ const TournamentDetailPage = () => {
     }
   };
 
+  const handleNextRound = async () => {
+    try {
+      await tournamentAPI.advanceToNextRound(id);
+      loadTournamentData();
+      setNotification({ type: 'success', message: 'Tournament advanced to next round successfully!' });
+    } catch (err) {
+      setNotification({ 
+        type: 'error', 
+        message: err.response?.data?.detail || 'Failed to advance to next round' 
+      });
+    }
+  };
+
   // Auto-hide notification after 5 seconds
   useEffect(() => {
     if (notification) {
@@ -322,6 +335,24 @@ const TournamentDetailPage = () => {
                 }}
               >
                 🚀 Start Tournament
+              </button>
+            )}
+
+            {isCreatedByMe && tournament.status === 'active' && (
+              <button
+                onClick={handleNextRound}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#9f7aea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}
+              >
+                ⏭️ Advance to Next Round
               </button>
             )}
             

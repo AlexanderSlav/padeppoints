@@ -8,6 +8,7 @@ import CreateTournamentPage from './pages/CreateTournamentPage';
 import RegisterPage from './pages/RegisterPage';
 import TournamentDiscoveryPage from './pages/TournamentDiscoveryPage';
 import TournamentDetailPage from './pages/TournamentDetailPage';
+import UserProfilePage from './pages/UserProfilePage';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -107,6 +108,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <TournamentDetailPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/users/:userId/profile" 
+        element={
+          <ProtectedRoute>
+            <UserProfilePage />
           </ProtectedRoute>
         } 
       />

@@ -16,6 +16,7 @@ const CreateTournamentPage = () => {
     start_date: '',
     entry_fee: '',
     max_players: '16',
+    points_per_match: '32',
     courts: '1'
   });
 
@@ -67,7 +68,9 @@ const CreateTournamentPage = () => {
         location: formData.location.trim(),
         start_date: formData.start_date,
         entry_fee: parseFloat(formData.entry_fee),
-        max_players: parseInt(formData.max_players)
+        max_players: parseInt(formData.max_players),
+        points_per_match: parseInt(formData.points_per_match),
+        courts: parseInt(formData.courts)
       };
 
       // Create tournament
@@ -223,11 +226,26 @@ const CreateTournamentPage = () => {
               value={formData.max_players}
               onChange={handleInputChange}
             >
-              <option value="8">8 players</option>
-              <option value="16">16 players</option>
-              <option value="32">32 players</option>
-              <option value="64">64 players</option>
+              <option value="4">4 players (1 court)</option>
+              <option value="8">8 players (2 courts)</option>
+              <option value="12">12 players (3 courts)</option>
+              <option value="16">16 players (4 courts)</option>
+              <option value="20">20 players (5 courts)</option>
+              <option value="24">24 players (6 courts)</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="points_per_match">Points per Match</label>
+            <input
+              type="number"
+              id="points_per_match"
+              name="points_per_match"
+              min="1"
+              value={formData.points_per_match}
+              onChange={handleInputChange}
+              placeholder="32"
+            />
           </div>
 
           <div className="form-group">

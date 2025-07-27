@@ -32,6 +32,8 @@ class Tournament(Base):
     entry_fee = Column(Float, nullable=False, default=0.0)
     max_players = Column(Integer, nullable=False, default=16)
     system = Column(Enum(TournamentSystem, name='tournamentsystem', create_type=False), nullable=False, default=TournamentSystem.AMERICANO)
+    points_per_match = Column(Integer, nullable=False, default=32)
+    courts = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
     status = Column(String, default=TournamentStatus.PENDING.value)

@@ -2,13 +2,15 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
+import uuid
 
 from app.core.auth import fastapi_users
-from app.schemas.user import UserRead, UserUpdate, UserCreate, PlayerSearchResult, UserSearchResponse
+from app.schemas.user import UserRead, UserUpdate, UserCreate, PlayerSearchResult, UserSearchResponse, GuestUserCreate
 from app.core.dependencies import get_current_user, get_current_superuser
 from app.core.user_manager import UserManager
 from app.db.base import get_db
 from app.repositories.user_repository import UserRepository
+from app.repositories.tournament_repository import TournamentRepository
 from app.models.user import User
 
 # Regular user router (public endpoints)
@@ -89,6 +91,68 @@ async def get_user_by_id(
     
     return user
 
+@router.get("/{user_id}/profile", response_model=dict, summary="Get User Profile with Statistics")
+async def get_user_profile(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get user profile with tournament statistics. Users can only see their own profile unless they're a superuser."""
+    user_repo = UserRepository(db)
+    tournament_repo = TournamentRepository(db)
+    
+    # Allow superusers to see any user, regular users only see themselves
+    if not current_user.is_superuser and user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to view this user"
+        )
+    
+    user = await user_repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Get user statistics
+    created_tournaments = await tournament_repo.get_by_user(user_id)
+    joined_tournaments = await tournament_repo.get_tournaments_joined_by_user(user_id)
+    
+    # Count tournaments by status
+    created_stats = {
+        "total": len(created_tournaments),
+        "pending": len([t for t in created_tournaments if t.status == "pending"]),
+        "active": len([t for t in created_tournaments if t.status == "active"]),
+        "completed": len([t for t in created_tournaments if t.status == "completed"])
+    }
+    
+    joined_stats = {
+        "total": len(joined_tournaments),
+        "pending": len([t for t in joined_tournaments if t.status == "pending"]),
+        "active": len([t for t in joined_tournaments if t.status == "active"]),
+        "completed": len([t for t in joined_tournaments if t.status == "completed"])
+    }
+    
+    return {
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "is_guest": user.email is None,
+            "is_verified": user.is_verified,
+            "is_active": user.is_active
+        },
+        "statistics": {
+            "tournaments_created": created_stats,
+            "tournaments_joined": joined_stats
+        },
+        "recent_tournaments": {
+            "created": created_tournaments[:5],  # Last 5 created
+            "joined": joined_tournaments[:5]     # Last 5 joined
+        }
+    }
+
 @router.get("/", response_model=UserSearchResponse, summary="Search Players")
 async def search_users(
     search: Optional[str] = None,
@@ -130,6 +194,59 @@ async def search_users(
         limit=limit,
         offset=offset
     )
+
+@router.post("/guest", response_model=UserRead, summary="Create Guest User")
+async def create_guest_user(
+    guest_data: GuestUserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Create a guest user with just a name (no email required).
+    
+    This is useful for adding players to tournaments who don't have accounts.
+    Guest users will have empty email and cannot log in.
+    """
+    from loguru import logger
+    
+    logger.info(f"Creating guest user: {guest_data.full_name}")
+    
+    user_repo = UserRepository(db)
+    
+    # Check if a user with this name already exists (case-insensitive)
+    existing_user = await user_repo.get_by_name_exact(guest_data.full_name)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"A user with the name '{guest_data.full_name}' already exists"
+        )
+    
+    # Create guest user data
+    guest_user_data = {
+        "id": str(uuid.uuid4()),
+        "full_name": guest_data.full_name,
+        "email": None,  # Empty email for guest users
+        "is_active": True,
+        "is_verified": True,  # Guest users are considered "verified" since they're created by authenticated users
+        "is_superuser": False,
+        "hashed_password": None
+    }
+    
+    logger.info(f"Guest user data: {guest_user_data}")
+    
+    try:
+        guest_user = await user_repo.create(guest_user_data)
+        logger.info(f"Successfully created guest user: {guest_user.id}")
+        return guest_user
+    except Exception as e:
+        logger.error(f"Failed to create guest user: {str(e)}")
+        logger.error(f"Exception type: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create guest user: {str(e)}"
+        )
 
 # Admin-only endpoints
 @admin_router.get("/", response_model=List[UserRead], summary="🔍 List All Users (Admin)")

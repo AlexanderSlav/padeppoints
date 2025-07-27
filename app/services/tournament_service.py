@@ -113,9 +113,27 @@ class TournamentService:
         if match.is_completed:
             raise ValueError(f"Match {match_id} is already completed")
         
+        # Get tournament to validate points_per_match
+        tournament_result = await self.db.execute(
+            select(Tournament).filter(Tournament.id == match.tournament_id)
+        )
+        tournament = tournament_result.scalar_one_or_none()
+        if not tournament:
+            raise ValueError(f"Tournament {match.tournament_id} not found")
+        
         # Validate scores
         if team1_score < 0 or team2_score < 0:
             raise ValueError("Scores must be non-negative")
+        
+        # Validate Americano scoring rule: sum must equal points_per_match
+        if tournament.system == TournamentSystem.AMERICANO:
+            total_points = team1_score + team2_score
+            if total_points != tournament.points_per_match:
+                raise ValueError(
+                    f"Invalid score for Americano format. "
+                    f"Team scores must sum to {tournament.points_per_match} points. "
+                    f"Current sum: {total_points} ({team1_score} + {team2_score})"
+                )
         
         # Record the result
         match.team1_score = team1_score

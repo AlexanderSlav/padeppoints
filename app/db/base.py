@@ -14,9 +14,10 @@ engine = create_async_engine(
 )
 
 # Create async session factory
-AsyncSessionLocal = async_scoped_session(
-    sessionmaker(engine, class_=AsyncSession, expire_on_commit=False),
-    scopefunc=asyncio.current_task,
+AsyncSessionLocal = sessionmaker(
+    engine, 
+    class_=AsyncSession, 
+    expire_on_commit=False
 )
 
 async def get_db() -> AsyncSession:

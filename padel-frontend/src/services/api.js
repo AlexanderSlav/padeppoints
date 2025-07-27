@@ -274,6 +274,37 @@ export const tournamentAPI = {
     });
     return response.data;
   },
+
+  // Add player to tournament by name (searches for user first, creates guest if not found)
+  addPlayerByName: async (tournamentId, playerName) => {
+    console.log('🔍 tournamentAPI: Adding player by name', tournamentId, playerName);
+    
+    // First search for the user by name
+    const searchResponse = await userAPI.searchUsers(playerName, 10);
+    const users = searchResponse.users;
+    
+    let selectedUser = null;
+    
+    // Look for exact match first
+    for (const user of users) {
+      if (user.full_name.toLowerCase() === playerName.toLowerCase()) {
+        selectedUser = user;
+        break;
+      }
+    }
+    
+    // If no exact match found, create a guest user
+    if (!selectedUser) {
+      console.log('🔍 tournamentAPI: No existing user found, creating guest user');
+      selectedUser = await userAPI.createGuestUser(playerName);
+    }
+    
+    // Add the user to the tournament using their ID
+    const response = await api.post(`/tournaments/${tournamentId}/add-player`, {
+      player_id: selectedUser.id
+    });
+    return response.data;
+  },
 };
 
 // User API
@@ -285,6 +316,22 @@ export const userAPI = {
     if (searchQuery) params.append('search', searchQuery);
     params.append('limit', limit.toString());
     const response = await api.get(`/users?${params.toString()}`);
+    return response.data;
+  },
+
+  // Create guest user
+  createGuestUser: async (fullName) => {
+    console.log('🔍 userAPI: Creating guest user', fullName);
+    const response = await api.post('/users/guest', {
+      full_name: fullName
+    });
+    return response.data;
+  },
+
+  // Get user profile with statistics
+  getUserProfile: async (userId) => {
+    console.log('🔍 userAPI: Getting user profile', userId);
+    const response = await api.get(`/users/${userId}/profile`);
     return response.data;
   },
 };

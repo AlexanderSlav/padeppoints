@@ -16,6 +16,8 @@ class TournamentBase(BaseModel):
     entry_fee: float
     max_players: int = 16
     system: TournamentSystem = TournamentSystem.AMERICANO
+    points_per_match: int = 32  # Points needed to win a match
+    courts: int = 1  # Number of courts available
 
 class TournamentCreate(TournamentBase):
     @field_validator('entry_fee')
@@ -28,8 +30,22 @@ class TournamentCreate(TournamentBase):
     @field_validator('max_players')
     @classmethod
     def validate_max_players(cls, v):
-        if v not in [8, 16, 32, 64]:
-            raise ValueError('Max players must be 8, 16, 32, or 64')
+        if v not in [4, 8, 12, 16, 20, 24, 32]:
+            raise ValueError('Max players must be 4, 8, 12, 16, 20, or 24')
+        return v
+    
+    @field_validator('points_per_match')
+    @classmethod
+    def validate_points_per_match(cls, v):
+        if v < 1:
+            raise ValueError('Points per match must be at least 1')
+        return v
+    
+    @field_validator('courts')
+    @classmethod
+    def validate_courts(cls, v):
+        if v < 1:
+            raise ValueError('Courts must be at least 1')
         return v
 
 class TournamentUpdate(BaseModel):
@@ -69,7 +85,7 @@ class TournamentJoinResponse(BaseModel):
 class TournamentPlayerResponse(BaseModel):
     id: str
     full_name: str
-    email: str
+    email: Optional[str] = None
 
 class TournamentPlayersResponse(BaseModel):
     tournament_id: str

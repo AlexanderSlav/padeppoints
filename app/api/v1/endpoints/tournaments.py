@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -18,10 +19,11 @@ from app.schemas.tournament import (
     TournamentPlayerResponse,
     TournamentPlayersResponse
 )
-from app.schemas.round import MatchResultUpdate
+from app.schemas.round import MatchResultUpdate, RoundResponse
 from app.repositories.tournament_repository import TournamentRepository
 from app.repositories.round_repository import RoundRepository
 from app.services.tournament_service import TournamentService
+from app.services.americano_service import AmericanoTournamentService
 from app.db.base import get_db
 from app.core.dependencies import get_current_user, get_tournament_as_organizer, get_tournament_for_user
 
@@ -44,6 +46,8 @@ async def create_tournament(
         "entry_fee": tournament.entry_fee,
         "max_players": tournament.max_players,
         "system": tournament.system,
+        "points_per_match": tournament.points_per_match,
+        "courts": tournament.courts,
         "created_by": current_user.id,
         "status": TournamentStatus.PENDING.value
     }
@@ -148,13 +152,14 @@ async def estimate_tournament_duration(
     players: int = Query(..., ge=4),
     courts: int = Query(1, ge=1),
     system: TournamentSystem = Query(TournamentSystem.AMERICANO),
+    points_per_game: int = Query(21, ge=1),
     current_user: User = Depends(get_current_user)
 ):
     """Estimate tournament duration for given settings."""
     if system != TournamentSystem.AMERICANO:
         raise HTTPException(status_code=400, detail="Only Americano supported")
 
-    minutes, rounds = AmericanoTournamentService.estimate_duration(players, courts)
+    minutes, rounds = AmericanoTournamentService.estimate_duration(num_players=players, courts=courts, points_per_game=points_per_game)
     return {
         "system": system.value,
         "players": players,
@@ -315,13 +320,56 @@ async def start_tournament(
     db: AsyncSession = Depends(get_db)
 ):
     """Start a tournament by generating all rounds."""
-    tournament_service = TournamentService(db)
+    logger.info(f"Starting tournament {tournament.id} by user")
     
     try:
-        tournament = await tournament_service.start_tournament(tournament.id)
-        return tournament
+        # Validate tournament state before starting
+        if tournament.status != TournamentStatus.PENDING.value:
+            logger.warning(f"Attempt to start tournament {tournament.id} with status {tournament.status}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Tournament cannot be started. Current status: {tournament.status}"
+            )
+        
+        # Check if tournament has enough players
+        tournament_repo = TournamentRepository(db)
+        tournament_info = await tournament_repo.get_tournament_with_player_count(tournament.id)
+        
+        if not tournament_info:
+            logger.error(f"Tournament {tournament.id} not found in database")
+            raise HTTPException(status_code=404, detail="Tournament not found")
+        
+        current_players = tournament_info.get("current_players", 0)
+        if current_players < 4:  # Minimum players for a tournament
+            logger.warning(f"Tournament {tournament.id} has insufficient players: {current_players}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot start tournament with {current_players} players. Minimum 4 players required."
+            )
+        
+        # Initialize tournament service
+        tournament_service = TournamentService(db)
+        logger.info(f"Initializing tournament service for tournament {tournament.id}")
+        
+        # Start the tournament
+        started_tournament = await tournament_service.start_tournament(tournament.id)
+        logger.info(f"Successfully started tournament {tournament.id}")
+        
+        return started_tournament
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except ValueError as e:
+        logger.error(f"Validation error starting tournament {tournament.id}: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error starting tournament {tournament.id}: {str(e)}")
+        logger.exception("Full exception details:")
+        raise HTTPException(
+            status_code=500, 
+            detail="An unexpected error occurred while starting the tournament"
+        )
 
 @router.get("/{tournament_id}/matches/current")
 async def get_current_round_matches(
@@ -453,13 +501,78 @@ async def get_player_scores(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/{tournament_id}/rounds", response_model=List[RoundResponse])
+@router.get("/{tournament_id}/rounds")
 async def get_all_rounds(
     tournament_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get all scheduled rounds for a tournament."""
-    round_repo = RoundRepository(db)
-    rounds = await round_repo.get_rounds_by_tournament(tournament_id)
-    return rounds
+    try:
+        # Check if tournament exists first
+        tournament_result = await db.execute(
+            select(Tournament).filter(Tournament.id == tournament_id)
+        )
+        tournament = tournament_result.scalar_one_or_none()
+        
+        if not tournament:
+            raise HTTPException(status_code=404, detail="Tournament not found")
+        
+        # If tournament hasn't started yet, return empty list
+        if tournament.status == TournamentStatus.PENDING.value:
+            return []
+        
+        # Try to get rounds with player relationships loaded
+        rounds_result = await db.execute(
+            select(Round)
+            .options(
+                selectinload(Round.team1_player1),
+                selectinload(Round.team1_player2),
+                selectinload(Round.team2_player1),
+                selectinload(Round.team2_player2)
+            )
+            .filter(Round.tournament_id == tournament_id)
+            .order_by(Round.round_number)
+        )
+        rounds = rounds_result.scalars().all()
+        
+        # Convert to dict format with player information
+        rounds_data = []
+        for round in rounds:
+            rounds_data.append({
+                "id": round.id,
+                "tournament_id": round.tournament_id,
+                "round_number": round.round_number,
+                "team1_player1": {
+                    "id": round.team1_player1.id,
+                    "full_name": round.team1_player1.full_name,
+                    "email": round.team1_player1.email,
+                } if round.team1_player1 else None,
+                "team1_player2": {
+                    "id": round.team1_player2.id,
+                    "full_name": round.team1_player2.full_name,
+                    "email": round.team1_player2.email,
+                } if round.team1_player2 else None,
+                "team2_player1": {
+                    "id": round.team2_player1.id,
+                    "full_name": round.team2_player1.full_name,
+                    "email": round.team2_player1.email,
+                } if round.team2_player1 else None,
+                "team2_player2": {
+                    "id": round.team2_player2.id,
+                    "full_name": round.team2_player2.full_name,
+                    "email": round.team2_player2.email,
+                } if round.team2_player2 else None,
+                "team1_score": round.team1_score,
+                "team2_score": round.team2_score,
+                "is_completed": round.is_completed
+            })
+        
+        return rounds_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_all_rounds: {str(e)}")
+        # Return empty list instead of crashing
+        return []

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { tournamentAPI, userAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
 
@@ -462,42 +462,77 @@ const OverviewTab = ({ tournament }) => (
 );
 
 const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [playerName, setPlayerName] = useState('');
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [addingPlayer, setAddingPlayer] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searching, setSearching] = useState(false);
 
+  // Debounced search function
   const searchUsers = async (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
+    if (!query.trim() || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
 
-    setSearchLoading(true);
+    setSearching(true);
     try {
-      const response = await userAPI.searchUsers(query, 10);
-      // Filter out players already in tournament
-      const filtered = response.users.filter(user => 
-        !players.some(player => player.id === user.id)
-      );
-      setSearchResults(filtered);
+      const response = await userAPI.searchUsers(query, 5);
+      setSuggestions(response.users);
+      setShowSuggestions(true);
     } catch (err) {
-      console.error('Search failed:', err);
-      setSearchResults([]);
+      console.error('Failed to search users:', err);
+      setSuggestions([]);
     } finally {
-      setSearchLoading(false);
+      setSearching(false);
     }
   };
 
-  const handleAddPlayer = async (playerId) => {
+  // Debounce search
+  const debouncedSearch = React.useCallback(
+    React.useMemo(() => {
+      let timeoutId;
+      return (query) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => searchUsers(query), 300);
+      };
+    }, []),
+    []
+  );
+
+  const handlePlayerNameChange = (e) => {
+    const value = e.target.value;
+    setPlayerName(value);
+    debouncedSearch(value);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setPlayerName(suggestion.full_name);
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
+
+  const handleAddPlayer = async () => {
+    if (!playerName.trim()) {
+      return;
+    }
+
+    setAddingPlayer(true);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    
     try {
-      await tournamentAPI.addPlayerToTournament(tournament.id, playerId);
-      setSearchQuery('');
-      setSearchResults([]);
+      await tournamentAPI.addPlayerByName(tournament.id, playerName.trim());
+      setPlayerName('');
       setShowAddPlayer(false);
       onPlayersChanged(); // Refresh tournament data
     } catch (err) {
       console.error('Failed to add player:', err);
+      alert('Failed to add player: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setAddingPlayer(false);
     }
   };
 
@@ -514,13 +549,7 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
     }
   };
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      searchUsers(searchQuery);
-    }, 300);
 
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
 
   return (
     <div>
@@ -558,81 +587,126 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
         }}>
           <h4 style={{ margin: '0 0 12px 0', color: '#2d3748' }}>Add Player to Tournament</h4>
           <div style={{ position: 'relative' }}>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search players by name or email..."
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '2px solid #e2e8f0',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            />
-            
-            {/* Search Results */}
-            {(searchResults.length > 0 || searchLoading) && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                backgroundColor: 'white',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                zIndex: 10,
-                maxHeight: '200px',
-                overflowY: 'auto'
-              }}>
-                {searchLoading ? (
-                  <div style={{ padding: '12px', textAlign: 'center', color: '#718096' }}>
-                    Searching...
-                  </div>
-                ) : (
-                  searchResults.map(user => (
-                    <div
-                      key={user.id}
-                      onClick={() => handleAddPlayer(user.id)}
-                      style={{
-                        padding: '12px',
-                        borderBottom: '1px solid #f7fafc',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f7fafc'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                    >
-                      <div>
-                        <div style={{ fontWeight: '600', color: '#2d3748' }}>
-                          {user.full_name || user.email}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#718096' }}>
-                          {user.email}
-                        </div>
-                      </div>
-                      <button
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={handlePlayerNameChange}
+                  placeholder="Enter player name (e.g., 'Andrey A', 'Alex B')"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && playerName.trim()) {
+                      handleAddPlayer();
+                    }
+                  }}
+                  onFocus={() => {
+                    if (suggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Delay hiding suggestions to allow clicking on them
+                    setTimeout(() => setShowSuggestions(false), 200);
+                  }}
+                />
+                
+                {/* Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    zIndex: 1000,
+                    maxHeight: '200px',
+                    overflowY: 'auto'
+                  }}>
+                    {suggestions.map((suggestion, index) => (
+                      <div
+                        key={suggestion.id}
+                        onClick={() => handleSuggestionClick(suggestion)}
                         style={{
-                          padding: '4px 8px',
-                          backgroundColor: '#48bb78',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          cursor: 'pointer'
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: index < suggestions.length - 1 ? '1px solid #f1f5f9' : 'none',
+                          backgroundColor: '#f8fafc',
+                          ':hover': {
+                            backgroundColor: '#e2e8f0'
+                          }
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = '#e2e8f0';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = '#f8fafc';
                         }}
                       >
-                        Add
-                      </button>
-                    </div>
-                  ))
+                        <div style={{ fontWeight: '500', color: '#2d3748' }}>
+                          {suggestion.full_name}
+                        </div>
+                        {suggestion.email && (
+                          <div style={{ fontSize: '12px', color: '#718096' }}>
+                            {suggestion.email}
+                          </div>
+                        )}
+                        {!suggestion.email && (
+                          <div style={{ fontSize: '12px', color: '#48bb78' }}>
+                            Guest User
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Loading indicator */}
+                {searching && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#718096'
+                  }}>
+                    🔍
+                  </div>
                 )}
               </div>
-            )}
+              
+              <button
+                onClick={handleAddPlayer}
+                disabled={!playerName.trim() || addingPlayer}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#48bb78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  opacity: (!playerName.trim() || addingPlayer) ? 0.6 : 1
+                }}
+              >
+                {addingPlayer ? 'Adding...' : 'Add'}
+              </button>
+            </div>
+            
+            <div style={{ fontSize: '12px', color: '#718096', marginTop: '8px' }}>
+              💡 Tip: Start typing to see existing users, or enter a new name to create a guest player.
+            </div>
           </div>
         </div>
       )}
@@ -670,9 +744,18 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
                 {index + 1}
               </div>
               <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: '600', color: '#2d3748' }}>
-                {player.full_name || player.email}
-              </div>
+                <div style={{ fontWeight: '600', color: '#2d3748' }}>
+                  <Link 
+                    to={`/users/${player.id}/profile`}
+                    style={{ 
+                      textDecoration: 'none', 
+                      color: 'inherit',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {player.full_name || player.email}
+                  </Link>
+                </div>
                 <div style={{ fontSize: '14px', color: '#718096' }}>
                   {player.email}
                 </div>
@@ -706,18 +789,46 @@ const MatchesTab = ({ matches, tournament, isCreatedByMe, onRecordResult }) => {
   const [results, setResults] = useState({});
 
   const handleResultChange = (matchId, field, value) => {
-    setResults(prev => ({
-      ...prev,
-      [matchId]: {
-        ...prev[matchId],
-        [field]: value
+    const newResults = { ...results };
+    if (!newResults[matchId]) {
+      newResults[matchId] = {};
+    }
+    
+    newResults[matchId][field] = value;
+    
+    // Auto-fill the other team's score for Americano format
+    if (tournament.system === 'AMERICANO' && tournament.points_per_match) {
+      const targetPoints = tournament.points_per_match;
+      
+      if (field === 'team1Score' && value !== '') {
+        const team1Score = parseInt(value) || 0;
+        const team2Score = Math.max(0, targetPoints - team1Score);
+        newResults[matchId].team2Score = team2Score.toString();
+      } else if (field === 'team2Score' && value !== '') {
+        const team2Score = parseInt(value) || 0;
+        const team1Score = Math.max(0, targetPoints - team2Score);
+        newResults[matchId].team1Score = team1Score.toString();
       }
-    }));
+    }
+    
+    setResults(newResults);
   };
 
   const handleSubmitResult = (matchId) => {
     const result = results[matchId];
     if (result && result.team1Score !== undefined && result.team2Score !== undefined) {
+      // For Americano, ensure we have valid scores that sum to target
+      if (tournament.system === 'AMERICANO' && tournament.points_per_match) {
+        const team1Score = parseInt(result.team1Score) || 0;
+        const team2Score = parseInt(result.team2Score) || 0;
+        const total = team1Score + team2Score;
+        
+        if (total !== tournament.points_per_match) {
+          alert(`Scores must sum to ${tournament.points_per_match} points. Current sum: ${total}`);
+          return;
+        }
+      }
+      
       onRecordResult(matchId, result.team1Score, result.team2Score);
     }
   };
@@ -835,6 +946,17 @@ const MatchesTab = ({ matches, tournament, isCreatedByMe, onRecordResult }) => {
                       vs
                     </div>
                   )}
+                  
+                  {!match.is_completed && isCreatedByMe && tournament.system === 'AMERICANO' && tournament.points_per_match && (
+                    <div style={{ 
+                      fontSize: '11px', 
+                      color: '#718096', 
+                      marginTop: '4px',
+                      textAlign: 'center'
+                    }}>
+                      Scores must sum to {tournament.points_per_match} points (e.g., 17-15)
+                    </div>
+                  )}
                 </div>
 
                 {/* Team 2 */}
@@ -883,9 +1005,15 @@ const ScheduleTab = ({ rounds }) => {
             {grouped[num].map(match => (
               <div key={match.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span>{match.team1_player1.full_name || match.team1_player1.email} &amp; {match.team1_player2.full_name || match.team1_player2.email}</span>
+                  <span>
+                    {match.team1_player1 ? (match.team1_player1.full_name || match.team1_player1.email || 'Unknown Player') : 'Unknown Player'} &amp; 
+                    {match.team1_player2 ? (match.team1_player2.full_name || match.team1_player2.email || 'Unknown Player') : 'Unknown Player'}
+                  </span>
                   <span>vs</span>
-                  <span>{match.team2_player1.full_name || match.team2_player1.email} &amp; {match.team2_player2.full_name || match.team2_player2.email}</span>
+                  <span>
+                    {match.team2_player1 ? (match.team2_player1.full_name || match.team2_player1.email || 'Unknown Player') : 'Unknown Player'} &amp; 
+                    {match.team2_player2 ? (match.team2_player2.full_name || match.team2_player2.email || 'Unknown Player') : 'Unknown Player'}
+                  </span>
                 </div>
               </div>
             ))}

@@ -17,136 +17,138 @@ class AmericanoTournamentService(BaseTournamentFormat):
     
     def validate_player_count(self) -> bool:
         """
-        Americano tournaments work best with 4, 6, 8, 12, 16 players.
-        Must be divisible by 4 for proper round robin.
+        Americano tournaments work with 4, 8, 12, 16, 20, 24 players.
+        Each court can handle 4 players per match.
         """
-        return self.total_players >= 4 and self.total_players % 2 == 0
+        return self.total_players >= 4 and self.total_players % 4 == 0
     
     def generate_rounds(self) -> List[List[Tuple[str, str, str, str]]]:
         """
         Generate all rounds for Americano tournament.
-        Ensures everyone plays with and against everyone else as much as possible.
+        Each round has matches where 4 players compete per court.
         """
         if not self.validate_player_count():
-            raise ValueError(f"Invalid player count: {self.total_players}. Must be even and >= 4")
+            raise ValueError(f"Invalid player count: {self.total_players}. Must be divisible by 4 and >= 4")
         
         player_ids = [player.id for player in self.players]
-        rounds = []
         
-        # For Americano, we generate rounds where each player plays with different partners
-        # and against different opponents as much as possible
+        # Calculate matches per round based on available courts
+        matches_per_round = self.tournament.courts
         
         # Calculate total rounds needed
-        # In ideal Americano, each player should play with every other player once as partner
-        # and against every other player at least once
+        # Each player should play with and against every other player
+        # For n players, we need approximately (n-1) rounds
         total_rounds = self._calculate_optimal_rounds()
         
-        # Generate round-robin style matches
-        rounds = self._generate_round_robin_rounds(player_ids)
+        # Generate rounds using proper Americano logic
+        rounds = self._generate_americano_rounds(player_ids, matches_per_round, total_rounds)
         
         return rounds
     
     def _calculate_optimal_rounds(self) -> int:
         """
         Calculate optimal number of rounds for Americano.
-        Each round has matches where every player plays once.
+        Each player should play with and against every other player.
         """
-        # Each round uses all players (total_players / 4 matches per round)
-        matches_per_round = self.total_players // 4
-        
-        # We want each player to play with every other player once as partner
-        # With n players, each player should play with (n-1) other players
-        # In each match, a player plays with 1 partner, so needs (n-1) matches
-        # But since each match involves 4 players, we need fewer total rounds
-        
-        # For simplicity, let's use a round-robin approach
-        # where we ensure good distribution
-        return self.total_players - 1 if self.total_players > 4 else 3
+        # For Americano, we want each player to play with every other player
+        # With n players, each player needs to play with (n-1) other players
+        # Since each match involves 4 players, we need fewer rounds
+        # A good approximation is (n-1) rounds for n players
+        return max(self.total_players - 1, 3)  # Minimum 3 rounds
 
     @staticmethod
     def calculate_total_rounds(num_players: int) -> int:
         """Calculate total rounds for a given player count."""
-        return num_players - 1 if num_players > 4 else 3
+        # Each player should play with and against every other player
+        # For a balanced tournament, use (P - 1) rounds
+        return num_players - 1
 
     @staticmethod
-    def estimate_duration(num_players: int, courts: int, match_minutes: int = 20) -> tuple[int, int]:
-        """Estimate tournament duration in minutes and return total rounds."""
+    def estimate_duration(num_players: int, courts: int, points_per_game: int = 21, seconds_per_point: int = 25) -> tuple[int, int]:
+        """
+        Estimate tournament duration in minutes and return total rounds.
+        
+        Args:
+            num_players: Number of players in tournament
+            courts: Number of courts available
+            points_per_game: Points needed to win a game (default: 21)
+            seconds_per_point: Average time per point in seconds (default: 25)
+        
+        Returns:
+            tuple: (total_minutes, total_rounds)
+        """
         if num_players < 4 or num_players % 2 != 0 or courts < 1:
             raise ValueError("Invalid players or courts")
-
-        total_rounds = AmericanoTournamentService.calculate_total_rounds(num_players)
+        
+        # Calculate total rounds based on Americano format
+        # Each player should play with and against every other player
+        # For a balanced tournament, use (P - 1) rounds
+        total_rounds = num_players - 1
+        
+        # Calculate total matches
+        # Each round has P/4 matches (since 4 players per match)
         matches_per_round = num_players // 4
-        minutes_per_round = math.ceil(matches_per_round / courts) * match_minutes
-        return total_rounds * minutes_per_round, total_rounds
+        total_matches = total_rounds * matches_per_round
+        
+        # Calculate time per match
+        # T_m = G * T_p (points per game * seconds per point)
+        seconds_per_match = points_per_game * seconds_per_point
+        minutes_per_match = seconds_per_match / 60
+        
+        # Calculate total time needed
+        # T_t = (M * T_m) / C (total matches * minutes per match / courts)
+        total_minutes = (total_matches * minutes_per_match) / courts
+        
+        return int(total_minutes), total_rounds
     
-    def _generate_round_robin_rounds(self, player_ids: List[str]) -> List[List[Tuple[str, str, str, str]]]:
+    def _generate_americano_rounds(self, player_ids: List[str], matches_per_round: int, total_rounds: int) -> List[List[Tuple[str, str, str, str]]]:
         """
-        Generate rounds using a round-robin algorithm optimized for pair rotation.
+        Generate rounds using proper Americano logic.
+        Each round has exactly matches_per_round matches (one per court).
         """
         rounds = []
         n_players = len(player_ids)
         
-        # Create a simple round-robin where we try to rotate partners and opponents
-        # For this implementation, we'll use a basic approach that ensures variety
-        
-        # First, generate all possible unique pairs
-        all_pairs = list(combinations(player_ids, 2))
-        
-        # Track which pairs have played together and against each other
-        played_together = set()
-        played_against = set()
-        
-        # Generate rounds
-        total_rounds = self._calculate_optimal_rounds()
+        # For Americano, we want to ensure good partner rotation
+        # Each player should play with different partners across rounds
         
         for round_num in range(total_rounds):
             round_matches = []
             used_players = set()
             
-            # Try to create matches for this round
-            matches_needed = n_players // 4
-            matches_created = 0
-            
-            # Simple algorithm: take available pairs and match them
-            available_pairs = [pair for pair in all_pairs 
-                             if not (pair[0] in used_players or pair[1] in used_players)]
-            
-            while matches_created < matches_needed and len(available_pairs) >= 2:
-                # Take first two available pairs
-                if len(available_pairs) < 2:
+            # Create matches for this round (one per court)
+            for match_num in range(matches_per_round):
+                if len(used_players) >= n_players:
                     break
-                    
-                team1 = available_pairs[0]
                 
-                # Find a compatible team2 (no shared players)
-                team2 = None
-                for i, pair in enumerate(available_pairs[1:], 1):
-                    if not (pair[0] in team1 or pair[1] in team1):
-                        team2 = pair
-                        available_pairs.pop(i)
-                        break
+                # Get available players for this match
+                available_players = [p for p in player_ids if p not in used_players]
                 
-                if team2:
-                    available_pairs.pop(0)  # Remove team1
-                    round_matches.append((team1[0], team1[1], team2[0], team2[1]))
-                    
-                    # Mark players as used
-                    used_players.update([team1[0], team1[1], team2[0], team2[1]])
-                    
-                    # Track what pairs have played together and against each other
-                    played_together.add(team1)
-                    played_together.add(team2)
-                    
-                    matches_created += 1
-                else:
+                if len(available_players) < 4:
+                    # Not enough players for a full match, skip
                     break
+                
+                # Select 4 players for this match
+                # Use round number to ensure good rotation
+                match_players = []
+                for i in range(4):
+                    if i < len(available_players):
+                        # Use round number to rotate player selection
+                        player_index = (round_num + i) % len(available_players)
+                        match_players.append(available_players[player_index])
+                
+                # Remove selected players from available list
+                for player in match_players:
+                    available_players.remove(player)
+                    used_players.add(player)
+                
+                # Create match: (team1_player1, team1_player2, team2_player1, team2_player2)
+                if len(match_players) == 4:
+                    match = (match_players[0], match_players[1], match_players[2], match_players[3])
+                    round_matches.append(match)
             
             if round_matches:
                 rounds.append(round_matches)
-        
-        # If we don't have enough rounds or matches, use a fallback method
-        if len(rounds) == 0 or sum(len(round_matches) for round_matches in rounds) < total_rounds:
-            return self._generate_simple_rounds(player_ids)
         
         return rounds
     

@@ -16,6 +16,8 @@ class UserRepository(BaseRepository[User]):
     
     async def get_by_email(self, email: str) -> Optional[User]:
         """Get user by email address."""
+        if email is None:
+            return None
         result = await self.db.execute(
             select(self.model).filter(self.model.email == email)
         )
@@ -83,15 +85,11 @@ class UserRepository(BaseRepository[User]):
                 )
             )
         
-        # Order by relevance: exact matches first, then prefix matches, then contains
         if search_query:
             search_lower = search_query.lower()
             query = query.order_by(
-                # Exact match on full name first
                 func.lower(self.model.full_name) == search_lower,
-                # Prefix match on full name second  
                 func.lower(self.model.full_name).like(f"{search_lower}%"),
-                # Then by full name alphabetically
                 self.model.full_name
             )
         else:
@@ -125,4 +123,13 @@ class UserRepository(BaseRepository[User]):
             )
         
         result = await self.db.execute(query)
-        return result.scalar() or 0 
+        return result.scalar() or 0
+    
+    async def get_by_name_exact(self, full_name: str) -> Optional[User]:
+        """Get user by exact name match (case-insensitive)."""
+        result = await self.db.execute(
+            select(self.model).filter(
+                func.lower(self.model.full_name) == full_name.lower()
+            )
+        )
+        return result.scalar_one_or_none() 

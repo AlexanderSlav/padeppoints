@@ -179,3 +179,59 @@ class TestAmericanoTournamentService:
         """Test static method for calculating total rounds."""
         assert AmericanoTournamentService.calculate_total_rounds(8) == 7
         assert AmericanoTournamentService.calculate_total_rounds(4) == 3
+
+    def test_calculate_player_statistics(self, americano_service, mock_players):
+        """Test comprehensive player statistics calculation."""
+        # Create mock completed rounds
+        completed_rounds = []
+        
+        # Round 1: Players 0,1 vs Players 2,3 -> 17-15 (Team 1 wins)
+        round1 = Mock(spec=Round)
+        round1.is_completed = True
+        round1.team1_player1_id = mock_players[0].id
+        round1.team1_player2_id = mock_players[1].id
+        round1.team2_player1_id = mock_players[2].id
+        round1.team2_player2_id = mock_players[3].id
+        round1.team1_score = 17
+        round1.team2_score = 15
+        completed_rounds.append(round1)
+        
+        # Round 2: Players 0,2 vs Players 1,3 -> 16-16 (Tie)
+        round2 = Mock(spec=Round)
+        round2.is_completed = True
+        round2.team1_player1_id = mock_players[0].id
+        round2.team1_player2_id = mock_players[2].id
+        round2.team2_player1_id = mock_players[1].id
+        round2.team2_player2_id = mock_players[3].id
+        round2.team1_score = 16
+        round2.team2_score = 16
+        completed_rounds.append(round2)
+        
+        # Round 3: Players 0,3 vs Players 1,2 -> 12-20 (Team 2 wins)
+        round3 = Mock(spec=Round)
+        round3.is_completed = True
+        round3.team1_player1_id = mock_players[0].id
+        round3.team1_player2_id = mock_players[3].id
+        round3.team2_player1_id = mock_players[1].id
+        round3.team2_player2_id = mock_players[2].id
+        round3.team1_score = 12
+        round3.team2_score = 20
+        completed_rounds.append(round3)
+        
+        stats = americano_service.calculate_player_statistics(completed_rounds)
+        
+        # Player 0: 17 + 16 + 12 = 45 points, W-L-T: 1-1-1, Diff: (17-15) + (16-16) + (12-20) = +2+0-8 = -6
+        assert stats[mock_players[0].id]['total_points'] == 45
+        assert stats[mock_players[0].id]['points_difference'] == -6
+        assert stats[mock_players[0].id]['wins'] == 1
+        assert stats[mock_players[0].id]['losses'] == 1
+        assert stats[mock_players[0].id]['ties'] == 1
+        assert stats[mock_players[0].id]['matches_played'] == 3
+        
+        # Player 1: 17 + 16 + 20 = 53 points, W-L-T: 2-1-0, Diff: (17-15) + (16-16) + (20-12) = +2+0+8 = +10
+        assert stats[mock_players[1].id]['total_points'] == 53
+        assert stats[mock_players[1].id]['points_difference'] == 10
+        assert stats[mock_players[1].id]['wins'] == 2
+        assert stats[mock_players[1].id]['losses'] == 0
+        assert stats[mock_players[1].id]['ties'] == 1
+        assert stats[mock_players[1].id]['matches_played'] == 3

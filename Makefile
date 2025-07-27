@@ -111,6 +111,22 @@ create-superuser:  ## Create the first superuser (run interactively)
 create-superuser-docker:  ## Create the first superuser in Docker container
 	docker exec -it $(API_SERVICE_NAME) python scripts/create_first_superuser.py
 
+.PHONY: test
+test:  ## Run tests in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/ -v
+
+.PHONY: test-unit
+test-unit:  ## Run only unit tests in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/unit/ -v
+
+.PHONY: test-integration
+test-integration:  ## Run only integration tests in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/integration/ -v
+
+.PHONY: test-coverage
+test-coverage:  ## Run tests with coverage report in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/ --cov=app --cov-report=html --cov-report=term -v
+
 
 .PHONY: help
 help:  ## Show help

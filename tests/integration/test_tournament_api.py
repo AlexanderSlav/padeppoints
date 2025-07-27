@@ -1,7 +1,4 @@
 import pytest
-from httpx import AsyncClient
-from fastapi import FastAPI
-from app.api.v1.api import api_router
 from app.models.tournament import TournamentStatus
 from app.models.user import User
 from app.models.tournament import Tournament
@@ -11,62 +8,52 @@ from sqlalchemy import select
 import uuid
 
 
-@pytest.fixture
-def app():
-    """Create FastAPI application for testing."""
-    app = FastAPI()
-    app.include_router(api_router, prefix="/api/v1")
-    return app
-
-
 @pytest.mark.asyncio
-async def test_create_tournament(app, db_session: AsyncSession, test_organizer: User):
+async def test_create_tournament(async_client, db_session: AsyncSession, test_organizer: User):
     """Test tournament creation."""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        tournament_data = {
-            "name": "Test Tournament",
-            "description": "A test tournament",
-            "location": "Test Location",
-            "start_date": "2024-12-01",
-            "entry_fee": 50.0,
-            "max_players": 8,
-            "system": "AMERICANO",
-            "points_per_match": 32,
-            "courts": 2
-        }
-        
-        # Mock authentication
-        from app.core.dependencies import get_current_user
-        app.dependency_overrides[get_current_user] = lambda: test_organizer
-        
-        response = await client.post("/api/v1/tournaments/", json=tournament_data)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["name"] == tournament_data["name"]
-        assert data["status"] == "pending"
-        assert data["created_by"] == test_organizer.id
+    tournament_data = {
+        "name": "Test Tournament",
+        "description": "A test tournament",
+        "location": "Test Location",
+        "start_date": "2024-12-01",
+        "entry_fee": 50.0,
+        "max_players": 8,
+        "system": "AMERICANO",
+        "points_per_match": 32,
+        "courts": 2
+    }
+    
+    # Mock authentication
+    from app.core.dependencies import get_current_user
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
+    
+    response = await async_client.post("/api/v1/tournaments/", json=tournament_data)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == tournament_data["name"]
+    assert data["status"] == "pending"
+    assert data["created_by"] == test_organizer.id
 
 
 @pytest.mark.asyncio
-async def test_start_tournament(app, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User):
+async def test_start_tournament(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User):
     """Test starting a tournament."""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Mock authentication and tournament access
-        from app.core.dependencies import get_current_user, get_tournament_as_organizer
-        app.dependency_overrides[get_current_user] = lambda: test_organizer
-        app.dependency_overrides[get_tournament_as_organizer] = lambda: test_tournament
-        
-        response = await client.post(f"/api/v1/tournaments/{test_tournament.id}/start")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "active"
-        assert data["current_round"] == 1
+    # Mock authentication and tournament access
+    from app.core.dependencies import get_current_user, get_tournament_as_organizer
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
+    async_client._transport.app.dependency_overrides[get_tournament_as_organizer] = lambda: test_tournament
+    
+    response = await async_client.post(f"/api/v1/tournaments/{test_tournament.id}/start")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "active"
+    assert data["current_round"] == 1
 
 
 @pytest.mark.asyncio
-async def test_advance_tournament_round(app, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User):
+async def test_advance_tournament_round(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User, test_players: list[User]):
     """Test advancing tournament to next round."""
     # Set tournament to active status
     test_tournament.status = TournamentStatus.ACTIVE.value
@@ -79,10 +66,10 @@ async def test_advance_tournament_round(app, db_session: AsyncSession, test_tour
             id=str(uuid.uuid4()),
             tournament_id=test_tournament.id,
             round_number=1,
-            team1_player1_id=test_tournament.players[i*2].id,
-            team1_player2_id=test_tournament.players[i*2+1].id,
-            team2_player1_id=test_tournament.players[i*2+2].id if i*2+2 < len(test_tournament.players) else test_tournament.players[0].id,
-            team2_player2_id=test_tournament.players[i*2+3].id if i*2+3 < len(test_tournament.players) else test_tournament.players[1].id,
+            team1_player1_id=test_players[i*2].id,
+            team1_player2_id=test_players[i*2+1].id,
+            team2_player1_id=test_players[i*2+2].id if i*2+2 < len(test_players) else test_players[0].id,
+            team2_player2_id=test_players[i*2+3].id if i*2+3 < len(test_players) else test_players[1].id,
             team1_score=17,
             team2_score=15,
             is_completed=True
@@ -91,21 +78,20 @@ async def test_advance_tournament_round(app, db_session: AsyncSession, test_tour
     
     await db_session.commit()
     
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Mock authentication and tournament access
-        from app.core.dependencies import get_current_user, get_tournament_as_organizer
-        app.dependency_overrides[get_current_user] = lambda: test_organizer
-        app.dependency_overrides[get_tournament_as_organizer] = lambda: test_tournament
-        
-        response = await client.post(f"/api/v1/tournaments/{test_tournament.id}/advance-round")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] == True
+    # Mock authentication and tournament access
+    from app.core.dependencies import get_current_user, get_tournament_as_organizer
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
+    async_client._transport.app.dependency_overrides[get_tournament_as_organizer] = lambda: test_tournament
+    
+    response = await async_client.post(f"/api/v1/tournaments/{test_tournament.id}/advance-round")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] == True
 
 
 @pytest.mark.asyncio
-async def test_get_tournament_leaderboard(app, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User):
+async def test_get_tournament_leaderboard(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User, test_players: list[User]):
     """Test getting tournament leaderboard."""
     # Set tournament to active status
     test_tournament.status = TournamentStatus.ACTIVE.value
@@ -116,10 +102,10 @@ async def test_get_tournament_leaderboard(app, db_session: AsyncSession, test_to
         id=str(uuid.uuid4()),
         tournament_id=test_tournament.id,
         round_number=1,
-        team1_player1_id=test_tournament.players[0].id,
-        team1_player2_id=test_tournament.players[1].id,
-        team2_player1_id=test_tournament.players[2].id,
-        team2_player2_id=test_tournament.players[3].id,
+        team1_player1_id=test_players[0].id,
+        team1_player2_id=test_players[1].id,
+        team2_player1_id=test_players[2].id,
+        team2_player2_id=test_players[3].id,
         team1_score=17,
         team2_score=15,
         is_completed=True
@@ -127,22 +113,27 @@ async def test_get_tournament_leaderboard(app, db_session: AsyncSession, test_to
     db_session.add(match)
     await db_session.commit()
     
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Mock authentication
-        from app.core.dependencies import get_current_user
-        app.dependency_overrides[get_current_user] = lambda: test_organizer
-        
-        response = await client.get(f"/api/v1/tournaments/{test_tournament.id}/leaderboard")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert "entries" in data
-        assert "tournament_id" in data
-        assert len(data["entries"]) > 0
+    # Mock authentication
+    from app.core.dependencies import get_current_user
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
+    
+    response = await async_client.get(f"/api/v1/tournaments/{test_tournament.id}/leaderboard")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "entries" in data
+    assert "tournament_id" in data
+    assert len(data["entries"]) > 0
+    # Check new fields
+    first_entry = data["entries"][0]
+    assert "points_difference" in first_entry
+    assert "wins" in first_entry
+    assert "losses" in first_entry
+    assert "ties" in first_entry
 
 
 @pytest.mark.asyncio
-async def test_record_match_result(app, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User):
+async def test_record_match_result(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User, test_players: list[User]):
     """Test recording match result."""
     # Set tournament to active status
     test_tournament.status = TournamentStatus.ACTIVE.value
@@ -154,35 +145,34 @@ async def test_record_match_result(app, db_session: AsyncSession, test_tournamen
         id=str(uuid.uuid4()),
         tournament_id=test_tournament.id,
         round_number=1,
-        team1_player1_id=test_tournament.players[0].id,
-        team1_player2_id=test_tournament.players[1].id,
-        team2_player1_id=test_tournament.players[2].id,
-        team2_player2_id=test_tournament.players[3].id,
+        team1_player1_id=test_players[0].id,
+        team1_player2_id=test_players[1].id,
+        team2_player1_id=test_players[2].id,
+        team2_player2_id=test_players[3].id,
         is_completed=False
     )
     db_session.add(match)
     await db_session.commit()
     
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Mock authentication
-        from app.core.dependencies import get_current_user
-        app.dependency_overrides[get_current_user] = lambda: test_organizer
-        
-        result_data = {
-            "team1_score": 17,
-            "team2_score": 15
-        }
-        
-        response = await client.put(f"/api/v1/tournaments/matches/{match.id}/result", json=result_data)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["team1_score"] == 17
-        assert data["team2_score"] == 15
+    # Mock authentication
+    from app.core.dependencies import get_current_user
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
+    
+    result_data = {
+        "team1_score": 17,
+        "team2_score": 15
+    }
+    
+    response = await async_client.put(f"/api/v1/tournaments/matches/{match.id}/result", json=result_data)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["team1_score"] == 17
+    assert data["team2_score"] == 15
 
 
 @pytest.mark.asyncio
-async def test_get_current_round_matches(app, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User):
+async def test_get_current_round_matches(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User, test_players: list[User]):
     """Test getting current round matches."""
     # Set tournament to active status
     test_tournament.status = TournamentStatus.ACTIVE.value
@@ -194,61 +184,99 @@ async def test_get_current_round_matches(app, db_session: AsyncSession, test_tou
         id=str(uuid.uuid4()),
         tournament_id=test_tournament.id,
         round_number=1,
-        team1_player1_id=test_tournament.players[0].id,
-        team1_player2_id=test_tournament.players[1].id,
-        team2_player1_id=test_tournament.players[2].id,
-        team2_player2_id=test_tournament.players[3].id,
+        team1_player1_id=test_players[0].id,
+        team1_player2_id=test_players[1].id,
+        team2_player1_id=test_players[2].id,
+        team2_player2_id=test_players[3].id,
         is_completed=False
     )
     db_session.add(match)
     await db_session.commit()
     
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Mock authentication
-        from app.core.dependencies import get_current_user
-        app.dependency_overrides[get_current_user] = lambda: test_organizer
-        
-        response = await client.get(f"/api/v1/tournaments/{test_tournament.id}/matches/current")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        assert len(data) > 0
-        assert "team1_player1" in data[0]
-        assert "team2_player1" in data[0]
-
-
-@pytest.mark.asyncio
-async def test_join_tournament(app, db_session: AsyncSession, test_tournament: Tournament, test_user: User):
-    """Test joining a tournament."""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Mock authentication and tournament access
-        from app.core.dependencies import get_current_user, get_tournament_for_user
-        app.dependency_overrides[get_current_user] = lambda: test_user
-        app.dependency_overrides[get_tournament_for_user] = lambda: test_tournament
-        
-        response = await client.post(f"/api/v1/tournaments/{test_tournament.id}/join")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] == True
-
-
-@pytest.mark.asyncio
-async def test_leave_tournament(app, db_session: AsyncSession, test_tournament: Tournament, test_user: User):
-    """Test leaving a tournament."""
-    # Add user to tournament first
-    test_tournament.players.append(test_user)
-    await db_session.commit()
+    # Mock authentication
+    from app.core.dependencies import get_current_user
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
     
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Mock authentication and tournament access
-        from app.core.dependencies import get_current_user, get_tournament_for_user
-        app.dependency_overrides[get_current_user] = lambda: test_user
-        app.dependency_overrides[get_tournament_for_user] = lambda: test_tournament
-        
-        response = await client.post(f"/api/v1/tournaments/{test_tournament.id}/leave")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] == True
+    response = await async_client.get(f"/api/v1/tournaments/{test_tournament.id}/matches/current")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "team1_player1" in data[0]
+    assert "team2_player1" in data[0]
+
+
+@pytest.mark.asyncio
+async def test_join_tournament(async_client, db_session: AsyncSession, test_user: User, test_organizer: User):
+    """Test joining a tournament."""
+    # Create a new tournament specifically for this test with space for more players
+    from datetime import date
+    tournament = Tournament(
+        id=str(uuid.uuid4()),
+        name="Join Test Tournament",
+        description="A test tournament for joining",
+        location="Test Location",
+        start_date=date(2024, 12, 1),
+        entry_fee=50.0,
+        max_players=16,  # More space for joining
+        system="AMERICANO",
+        points_per_match=32,
+        courts=2,
+        created_by=test_organizer.id,
+        status="pending"
+    )
+    
+    db_session.add(tournament)
+    await db_session.commit()
+    await db_session.refresh(tournament)
+    
+    # Mock authentication and tournament access
+    from app.core.dependencies import get_current_user, get_tournament_for_user
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_user
+    async_client._transport.app.dependency_overrides[get_tournament_for_user] = lambda: tournament
+    
+    response = await async_client.post(f"/api/v1/tournaments/{tournament.id}/join")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] == True
+
+
+@pytest.mark.asyncio
+async def test_leave_tournament(async_client, db_session: AsyncSession, test_organizer: User, test_players: list[User]):
+    """Test leaving a tournament."""
+    # Create a tournament with the user already in it
+    from datetime import date
+    tournament = Tournament(
+        id=str(uuid.uuid4()),
+        name="Leave Test Tournament",
+        description="A test tournament for leaving",
+        location="Test Location",
+        start_date=date(2024, 12, 1),
+        entry_fee=50.0,
+        max_players=16,
+        system="AMERICANO",
+        points_per_match=32,
+        courts=2,
+        created_by=test_organizer.id,
+        status="pending"
+    )
+    
+    # Add the first player to the tournament
+    tournament.players = [test_players[0]]
+    
+    db_session.add(tournament)
+    await db_session.commit()
+    await db_session.refresh(tournament)
+    
+    # Mock authentication and tournament access
+    from app.core.dependencies import get_current_user, get_tournament_for_user
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_players[0]
+    async_client._transport.app.dependency_overrides[get_tournament_for_user] = lambda: tournament
+    
+    response = await async_client.post(f"/api/v1/tournaments/{tournament.id}/leave")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] == True

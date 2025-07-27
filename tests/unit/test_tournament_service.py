@@ -47,9 +47,10 @@ class TestTournamentService:
             players.append(player)
         return players
 
-    def test_get_format_service_americano(self, tournament_service, mock_tournament):
+    def test_get_format_service_americano(self, tournament_service, mock_tournament, mock_players):
         """Test getting Americano format service."""
         mock_tournament.system = TournamentSystem.AMERICANO
+        mock_tournament.players = mock_players
         service = tournament_service.get_format_service(mock_tournament)
         assert isinstance(service, AmericanoTournamentService)
 
@@ -156,13 +157,13 @@ class TestTournamentService:
         tournament_result = Mock()
         tournament_result.scalar_one_or_none.return_value = mock_tournament
         
+        # Test negative scores - need fresh mock for each test
         tournament_service.db.execute = AsyncMock(side_effect=[match_result, tournament_result])
-        
-        # Test negative scores
         with pytest.raises(ValueError, match="Scores must be non-negative"):
             await tournament_service.record_match_result(mock_match.id, -1, 15)
         
-        # Test invalid Americano scores (don't sum to points_per_match)
+        # Test invalid Americano scores (don't sum to points_per_match) - reset mock side_effect
+        tournament_service.db.execute = AsyncMock(side_effect=[match_result, tournament_result])
         with pytest.raises(ValueError, match="Invalid score for Americano format"):
             await tournament_service.record_match_result(mock_match.id, 10, 15)
 
@@ -203,42 +204,72 @@ class TestTournamentService:
 
     @pytest.mark.asyncio
     async def test_get_tournament_leaderboard(self, tournament_service, mock_tournament, mock_players):
-        """Test getting tournament leaderboard."""
-        # Setup mock player scores
-        player_scores = {
-            mock_players[0].id: 100,
-            mock_players[1].id: 90,
-            mock_players[2].id: 80
-        }
-        
-        # Mock get_player_scores
-        tournament_service.get_player_scores = AsyncMock(return_value=player_scores)
-        
-        # Mock database tournament query
+        """Test getting tournament leaderboard with comprehensive statistics."""
+        # Setup mock tournament and rounds query results
         tournament_result = Mock()
         tournament_result.scalar_one_or_none.return_value = mock_tournament
         
-        # Mock player queries
-        player_results = []
-        for i, player in enumerate(mock_players[:3]):
-            player_result = Mock()
-            player_result.scalar_one_or_none.return_value = player
-            player_results.append(player_result)
+        # Mock completed rounds
+        rounds_result = Mock()
+        rounds_result.scalars.return_value.all.return_value = []
         
-        tournament_service.db.execute = AsyncMock(side_effect=[tournament_result] + player_results)
+        # Mock users query
+        users_result = Mock()
+        users_result.scalars.return_value.all.return_value = mock_players[:3]
         
-        # Mock format service
+        tournament_service.db.execute = AsyncMock(side_effect=[tournament_result, rounds_result, users_result])
+        
+        # Mock format service with comprehensive statistics
         mock_format_service = Mock()
-        mock_format_service.get_player_leaderboard.return_value = [
-            (mock_players[0].id, 100),
-            (mock_players[1].id, 90),
-            (mock_players[2].id, 80)
-        ]
+        mock_player_stats = {
+            mock_players[0].id: {
+                'total_points': 100,
+                'points_difference': 15,
+                'wins': 3,
+                'losses': 1,
+                'ties': 0,
+                'matches_played': 4
+            },
+            mock_players[1].id: {
+                'total_points': 90,
+                'points_difference': 5,
+                'wins': 2,
+                'losses': 1,
+                'ties': 1,
+                'matches_played': 4
+            },
+            mock_players[2].id: {
+                'total_points': 80,
+                'points_difference': -10,
+                'wins': 1,
+                'losses': 2,
+                'ties': 1,
+                'matches_played': 4
+            }
+        }
+        mock_format_service.calculate_player_statistics.return_value = mock_player_stats
         tournament_service.get_format_service = Mock(return_value=mock_format_service)
         
         leaderboard = await tournament_service.get_tournament_leaderboard(mock_tournament.id)
         
         assert len(leaderboard) == 3
+        # Check first place (highest total points)
         assert leaderboard[0]["player_name"] == "Player 1"
         assert leaderboard[0]["score"] == 100
+        assert leaderboard[0]["points_difference"] == 15
+        assert leaderboard[0]["wins"] == 3
+        assert leaderboard[0]["losses"] == 1
+        assert leaderboard[0]["ties"] == 0
+        assert leaderboard[0]["matches_played"] == 4
         assert leaderboard[0]["rank"] == 1
+        
+        # Check second place
+        assert leaderboard[1]["player_name"] == "Player 2"
+        assert leaderboard[1]["score"] == 90
+        assert leaderboard[1]["rank"] == 2
+        
+        # Check third place
+        assert leaderboard[2]["player_name"] == "Player 3"
+        assert leaderboard[2]["score"] == 80
+        assert leaderboard[2]["points_difference"] == -10
+        assert leaderboard[2]["rank"] == 3

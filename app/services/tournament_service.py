@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional, Type
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.models.tournament import Tournament, TournamentSystem, TournamentStatus
 from app.models.round import Round
 from app.models.user import User
@@ -44,7 +45,11 @@ class TournamentService:
         """
         Start a tournament by generating all rounds and setting status to active.
         """
-        result = await self.db.execute(select(Tournament).filter(Tournament.id == tournament_id))
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == tournament_id)
+        )
         tournament = result.scalar_one_or_none()
         if not tournament:
             raise ValueError(f"Tournament {tournament_id} not found")
@@ -89,7 +94,11 @@ class TournamentService:
         """
         Get all matches for the current round of a tournament.
         """
-        result = await self.db.execute(select(Tournament).filter(Tournament.id == tournament_id))
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == tournament_id)
+        )
         tournament = result.scalar_one_or_none()
         if not tournament:
             raise ValueError(f"Tournament {tournament_id} not found")
@@ -115,7 +124,9 @@ class TournamentService:
         
         # Get tournament to validate points_per_match
         tournament_result = await self.db.execute(
-            select(Tournament).filter(Tournament.id == match.tournament_id)
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == match.tournament_id)
         )
         tournament = tournament_result.scalar_one_or_none()
         if not tournament:
@@ -181,7 +192,11 @@ class TournamentService:
         """
         Get current player scores for a tournament.
         """
-        result = await self.db.execute(select(Tournament).filter(Tournament.id == tournament_id))
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == tournament_id)
+        )
         tournament = result.scalar_one_or_none()
         if not tournament:
             raise ValueError(f"Tournament {tournament_id} not found")
@@ -202,7 +217,11 @@ class TournamentService:
         """
         Get tournament leaderboard with player details and scores.
         """
-        result = await self.db.execute(select(Tournament).filter(Tournament.id == tournament_id))
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == tournament_id)
+        )
         tournament = result.scalar_one_or_none()
         if not tournament:
             raise ValueError(f"Tournament {tournament_id} not found")
@@ -216,11 +235,14 @@ class TournamentService:
         else:
             leaderboard = sorted(player_scores.items(), key=lambda x: x[1], reverse=True)
         
-        # Enrich with player details
+        # Enrich with player details - bulk load all users
+        player_ids = [player_id for player_id, _ in leaderboard]
+        result = await self.db.execute(select(User).filter(User.id.in_(player_ids)))
+        users_dict = {user.id: user for user in result.scalars().all()}
+        
         result_list = []
         for player_id, score in leaderboard:
-            result = await self.db.execute(select(User).filter(User.id == player_id))
-            player = result.scalar_one_or_none()
+            player = users_dict.get(player_id)
             if player:
                 result_list.append({
                     "player_id": player_id,
@@ -236,7 +258,11 @@ class TournamentService:
         """
         Get the tournament winner (only if tournament is completed).
         """
-        result = await self.db.execute(select(Tournament).filter(Tournament.id == tournament_id))
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == tournament_id)
+        )
         tournament = result.scalar_one_or_none()
         if not tournament:
             raise ValueError(f"Tournament {tournament_id} not found")
@@ -249,8 +275,8 @@ class TournamentService:
         winner_id = format_service.get_tournament_winner(player_scores)
         
         if winner_id:
-            result = await self.db.execute(select(User).filter(User.id == winner_id))
-            winner = result.scalar_one_or_none()
+            # Find winner in tournament players (already loaded)
+            winner = next((player for player in tournament.players if player.id == winner_id), None)
             if winner:
                 return {
                     "player_id": winner_id,

@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.auth import fastapi_users
 from app.models.user import User
@@ -21,9 +22,11 @@ async def get_tournament_as_organizer(
     Dependency that checks if the current user is the organizer of the tournament.
     Returns the tournament if the user is the organizer, raises 403 otherwise.
     """
-    # Get tournament from database
+    # Get tournament from database with players loaded
     result = await db.execute(
-        select(Tournament).filter(Tournament.id == tournament_id)
+        select(Tournament)
+        .options(selectinload(Tournament.players))
+        .filter(Tournament.id == tournament_id)
     )
     tournament = result.scalar_one_or_none()
     
@@ -51,9 +54,11 @@ async def get_tournament_for_user(
     Dependency that gets a tournament for any authenticated user.
     Returns the tournament if it exists, raises 404 otherwise.
     """
-    # Get tournament from database
+    # Get tournament from database with players loaded
     result = await db.execute(
-        select(Tournament).filter(Tournament.id == tournament_id)
+        select(Tournament)
+        .options(selectinload(Tournament.players))
+        .filter(Tournament.id == tournament_id)
     )
     tournament = result.scalar_one_or_none()
     

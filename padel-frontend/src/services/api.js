@@ -19,6 +19,14 @@ api.interceptors.request.use((config) => {
   } else {
     console.log('🔓 API Request: No token for', config.method?.toUpperCase(), config.url);
   }
+  
+  // Add cache-busting headers for GET requests to prevent stale data
+  if (config.method === 'get') {
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    config.headers['Pragma'] = 'no-cache';
+    config.headers['Expires'] = '0';
+  }
+  
   return config;
 });
 

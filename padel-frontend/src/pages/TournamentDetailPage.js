@@ -1034,17 +1034,63 @@ const ScheduleTab = ({ rounds }) => {
           <h4 style={{ color: '#2d3748', marginBottom: '8px' }}>Round {num}</h4>
           <div style={{ display: 'grid', gap: '12px' }}>
             {grouped[num].map(match => (
-              <div key={match.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span>
-                    {match.team1_player1 ? (match.team1_player1.full_name || match.team1_player1.email || 'Unknown Player') : 'Unknown Player'} &amp; 
-                    {match.team1_player2 ? (match.team1_player2.full_name || match.team1_player2.email || 'Unknown Player') : 'Unknown Player'}
-                  </span>
-                  <span>vs</span>
-                  <span>
-                    {match.team2_player1 ? (match.team2_player1.full_name || match.team2_player1.email || 'Unknown Player') : 'Unknown Player'} &amp; 
-                    {match.team2_player2 ? (match.team2_player2.full_name || match.team2_player2.email || 'Unknown Player') : 'Unknown Player'}
-                  </span>
+              <div 
+                key={match.id} 
+                style={{ 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '8px', 
+                  padding: '16px',
+                  backgroundColor: match.is_completed ? '#f0fff4' : '#fff'
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '20px', alignItems: 'center' }}>
+                  {/* Team 1 */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontWeight: '600', color: '#2d3748', marginBottom: '4px' }}>Team 1</div>
+                    <div style={{ fontSize: '14px', color: '#4a5568' }}>
+                      {match.team1_player1 ? (match.team1_player1.full_name || match.team1_player1.email || 'Unknown Player') : 'Unknown Player'}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#4a5568' }}>
+                      {match.team1_player2 ? (match.team1_player2.full_name || match.team1_player2.email || 'Unknown Player') : 'Unknown Player'}
+                    </div>
+                  </div>
+
+                  {/* Score */}
+                  <div style={{ textAlign: 'center' }}>
+                    {match.is_completed ? (
+                      <div>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3748' }}>
+                          {match.team1_score} - {match.team2_score}
+                        </div>
+                        <div style={{
+                          backgroundColor: '#48bb78',
+                          color: 'white',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          marginTop: '8px'
+                        }}>
+                          COMPLETED
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '18px', color: '#718096' }}>
+                        vs
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Team 2 */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontWeight: '600', color: '#2d3748', marginBottom: '4px' }}>Team 2</div>
+                    <div style={{ fontSize: '14px', color: '#4a5568' }}>
+                      {match.team2_player1 ? (match.team2_player1.full_name || match.team2_player1.email || 'Unknown Player') : 'Unknown Player'}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#4a5568' }}>
+                      {match.team2_player2 ? (match.team2_player2.full_name || match.team2_player2.email || 'Unknown Player') : 'Unknown Player'}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1085,13 +1131,33 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
         )}
 
         <div style={{ display: 'grid', gap: '8px' }}>
+          {/* Header row */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '60px 1fr 80px 100px 120px',
+            gap: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#e2e8f0',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#4a5568'
+          }}>
+            <div>Rank</div>
+            <div>Player</div>
+            <div>Points</div>
+            <div>Difference</div>
+            <div>W-L-T</div>
+          </div>
+          
           {leaderboard.entries.map((entry, index) => (
             <div 
               key={entry.player_id}
               style={{
-                display: 'flex',
-                alignItems: 'center',
+                display: 'grid',
+                gridTemplateColumns: '60px 1fr 80px 100px 120px',
                 gap: '16px',
+                alignItems: 'center',
                 padding: '16px',
                 backgroundColor: index === 0 ? '#fef5e7' : '#f7fafc',
                 borderRadius: '8px',
@@ -1112,7 +1178,7 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
               }}>
                 {entry.rank}
               </div>
-              <div style={{ flex: 1 }}>
+              <div>
                 <div style={{ fontWeight: '600', color: '#2d3748', fontSize: '16px' }}>
                   {entry.player_name}
                 </div>
@@ -1123,9 +1189,27 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
               <div style={{ 
                 fontSize: '18px', 
                 fontWeight: 'bold', 
-                color: '#2d3748' 
+                color: '#2d3748',
+                textAlign: 'center'
               }}>
-                {entry.score} pts
+                {entry.score}
+              </div>
+              <div style={{ 
+                fontSize: '16px', 
+                fontWeight: '600',
+                color: entry.points_difference >= 0 ? '#48bb78' : '#f56565',
+                textAlign: 'center'
+              }}>
+                {entry.points_difference >= 0 ? '+' : ''}{entry.points_difference || 0}
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#4a5568',
+                textAlign: 'center'
+              }}>
+                <span style={{ color: '#48bb78', fontWeight: '600' }}>{entry.wins || 0}</span>-
+                <span style={{ color: '#f56565', fontWeight: '600' }}>{entry.losses || 0}</span>-
+                <span style={{ color: '#718096', fontWeight: '600' }}>{entry.ties || 0}</span>
               </div>
             </div>
           ))}

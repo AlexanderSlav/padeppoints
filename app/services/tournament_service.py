@@ -215,7 +215,7 @@ class TournamentService:
     
     async def get_tournament_leaderboard(self, tournament_id: str) -> List[Dict]:
         """
-        Get tournament leaderboard with player details and scores.
+        Get tournament leaderboard with player details and comprehensive statistics.
         """
         result = await self.db.execute(
             select(Tournament)
@@ -226,14 +226,39 @@ class TournamentService:
         if not tournament:
             raise ValueError(f"Tournament {tournament_id} not found")
         
-        player_scores = await self.get_player_scores(tournament_id)
+        # Get all completed rounds for statistics calculation
+        result = await self.db.execute(
+            select(Round)
+            .filter(Round.tournament_id == tournament_id)
+            .filter(Round.is_completed == True)
+        )
+        completed_rounds = result.scalars().all()
+        
         format_service = self.get_format_service(tournament)
         
-        # Get leaderboard
-        if hasattr(format_service, 'get_player_leaderboard'):
-            leaderboard = format_service.get_player_leaderboard(player_scores)
+        # Get comprehensive player statistics if available
+        if hasattr(format_service, 'calculate_player_statistics'):
+            player_stats = format_service.calculate_player_statistics(completed_rounds)
         else:
-            leaderboard = sorted(player_scores.items(), key=lambda x: x[1], reverse=True)
+            # Fallback to basic scores
+            player_scores = await self.get_player_scores(tournament_id)
+            player_stats = {
+                pid: {
+                    'total_points': score,
+                    'points_difference': 0,
+                    'wins': 0,
+                    'losses': 0,
+                    'ties': 0,
+                    'matches_played': 0
+                } for pid, score in player_scores.items()
+            }
+        
+        # Sort by total points (descending), then by points difference (descending)
+        leaderboard = sorted(
+            player_stats.items(), 
+            key=lambda x: (x[1]['total_points'], x[1]['points_difference']), 
+            reverse=True
+        )
         
         # Enrich with player details - bulk load all users
         player_ids = [player_id for player_id, _ in leaderboard]
@@ -241,14 +266,19 @@ class TournamentService:
         users_dict = {user.id: user for user in result.scalars().all()}
         
         result_list = []
-        for player_id, score in leaderboard:
+        for player_id, stats in leaderboard:
             player = users_dict.get(player_id)
             if player:
                 result_list.append({
                     "player_id": player_id,
                     "player_name": player.full_name or player.email or "Unknown Player",
                     "email": player.email,
-                    "score": score,
+                    "score": stats['total_points'],
+                    "points_difference": stats['points_difference'],
+                    "wins": stats['wins'],
+                    "losses": stats['losses'],
+                    "ties": stats['ties'],
+                    "matches_played": stats['matches_played'],
                     "rank": len(result_list) + 1
                 })
         

@@ -201,6 +201,79 @@ class AmericanoTournamentService(BaseTournamentFormat):
                 player_scores[round_match.team2_player2_id] += round_match.team2_score
         
         return player_scores
+
+    def calculate_player_statistics(self, completed_rounds: List[Round]) -> Dict[str, Dict]:
+        """
+        Calculate comprehensive player statistics including scores, points difference, and W-L-T.
+        """
+        player_stats = {}
+        
+        # Initialize stats for all players
+        for player in self.players:
+            player_stats[player.id] = {
+                'total_points': 0,
+                'points_earned': 0,
+                'points_conceded': 0,
+                'points_difference': 0,
+                'wins': 0,
+                'losses': 0,
+                'ties': 0,
+                'matches_played': 0
+            }
+        
+        # Calculate stats from completed rounds
+        for round_match in completed_rounds:
+            if round_match.is_completed:
+                team1_score = round_match.team1_score
+                team2_score = round_match.team2_score
+                
+                # Determine match outcome
+                if team1_score > team2_score:
+                    # Team 1 wins
+                    team1_result = 'win'
+                    team2_result = 'loss'
+                elif team2_score > team1_score:
+                    # Team 2 wins
+                    team1_result = 'loss'
+                    team2_result = 'win'
+                else:
+                    # Tie
+                    team1_result = 'tie'
+                    team2_result = 'tie'
+                
+                # Update Team 1 players stats
+                for player_id in [round_match.team1_player1_id, round_match.team1_player2_id]:
+                    stats = player_stats[player_id]
+                    stats['total_points'] += team1_score
+                    stats['points_earned'] += team1_score
+                    stats['points_conceded'] += team2_score
+                    stats['points_difference'] += (team1_score - team2_score)
+                    stats['matches_played'] += 1
+                    
+                    if team1_result == 'win':
+                        stats['wins'] += 1
+                    elif team1_result == 'loss':
+                        stats['losses'] += 1
+                    else:
+                        stats['ties'] += 1
+                
+                # Update Team 2 players stats
+                for player_id in [round_match.team2_player1_id, round_match.team2_player2_id]:
+                    stats = player_stats[player_id]
+                    stats['total_points'] += team2_score
+                    stats['points_earned'] += team2_score
+                    stats['points_conceded'] += team1_score
+                    stats['points_difference'] += (team2_score - team1_score)
+                    stats['matches_played'] += 1
+                    
+                    if team2_result == 'win':
+                        stats['wins'] += 1
+                    elif team2_result == 'loss':
+                        stats['losses'] += 1
+                    else:
+                        stats['ties'] += 1
+        
+        return player_stats
     
     def is_tournament_complete(self, current_round: int) -> bool:
         """

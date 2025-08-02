@@ -170,6 +170,9 @@ class TestTournamentService:
     @pytest.mark.asyncio
     async def test_get_player_scores(self, tournament_service, mock_tournament, mock_players):
         """Test getting player scores."""
+        # Setup mock tournament with players
+        mock_tournament.players = mock_players
+        
         # Setup mock completed rounds
         mock_rounds = []
         for i in range(2):
@@ -205,6 +208,9 @@ class TestTournamentService:
     @pytest.mark.asyncio
     async def test_get_tournament_leaderboard(self, tournament_service, mock_tournament, mock_players):
         """Test getting tournament leaderboard with comprehensive statistics."""
+        # Setup mock tournament with players
+        mock_tournament.players = mock_players
+        
         # Setup mock tournament and rounds query results
         tournament_result = Mock()
         tournament_result.scalar_one_or_none.return_value = mock_tournament

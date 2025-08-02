@@ -1,11 +1,11 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, or_, func, outerjoin
 from sqlalchemy.orm import selectinload
 from datetime import date, datetime
 
 from app.repositories.base import BaseRepository
-from app.models.tournament import Tournament, TournamentSystem, TournamentStatus
+from app.models.tournament import Tournament, TournamentSystem, TournamentStatus, tournament_player
 from app.models.user import User
 
 class TournamentRepository(BaseRepository[Tournament]):
@@ -180,6 +180,8 @@ class TournamentRepository(BaseRepository[Tournament]):
             "can_join": tournament.status == TournamentStatus.PENDING.value and current_players < tournament.max_players
         }
     
+    # DEPRECATED: Use get_tournaments_with_counts_and_total instead
+    # This method is kept for backward compatibility but should be removed
     async def get_all_tournaments(
         self,
         format: Optional[TournamentSystem] = None,
@@ -191,41 +193,21 @@ class TournamentRepository(BaseRepository[Tournament]):
         limit: int = 100,
         offset: int = 0
     ) -> List[Tournament]:
-        """Get tournaments with filtering options"""
-        query = select(Tournament)
-        
-        filters = []
-        
-        if format:
-            filters.append(Tournament.system == format)
-        
-        if status:
-            filters.append(Tournament.status == status)
-            
-        if start_date_from:
-            filters.append(Tournament.start_date >= start_date_from)
-            
-        if start_date_to:
-            filters.append(Tournament.start_date <= start_date_to)
-            
-        if location:
-            filters.append(Tournament.location.ilike(f"%{location}%"))
-            
-        if created_by:
-            filters.append(Tournament.created_by == created_by)
-        
-        if filters:
-            query = query.filter(and_(*filters))
-        
-        # Order by start date (upcoming first, then by creation date)
-        query = query.order_by(Tournament.start_date.asc(), Tournament.created_at.desc())
-        
-        # Apply pagination
-        query = query.offset(offset).limit(limit)
-        
-        result = await self.db.execute(query)
-        return result.scalars().all()
+        """DEPRECATED: Get tournaments with filtering options"""
+        tournaments, _ = await self.get_tournaments_with_counts_and_total(
+            format=format,
+            status=status,
+            start_date_from=start_date_from,
+            start_date_to=start_date_to,
+            location=location,
+            created_by=created_by,
+            limit=limit,
+            offset=offset
+        )
+        return tournaments
     
+    # DEPRECATED: Use get_tournaments_with_counts_and_total instead
+    # This method is kept for backward compatibility but should be removed
     async def count_tournaments(
         self,
         format: Optional[TournamentSystem] = None,
@@ -235,35 +217,18 @@ class TournamentRepository(BaseRepository[Tournament]):
         location: Optional[str] = None,
         created_by: Optional[str] = None
     ) -> int:
-        """Count tournaments matching the filters"""
-        query = select(Tournament)
-        
-        filters = []
-        
-        if format:
-            filters.append(Tournament.system == format)
-        
-        if status:
-            filters.append(Tournament.status == status)
-            
-        if start_date_from:
-            filters.append(Tournament.start_date >= start_date_from)
-            
-        if start_date_to:
-            filters.append(Tournament.start_date <= start_date_to)
-            
-        if location:
-            filters.append(Tournament.location.ilike(f"%{location}%"))
-            
-        if created_by:
-            filters.append(Tournament.created_by == created_by)
-        
-        if filters:
-            query = query.filter(and_(*filters))
-        
-        count_query = select(func.count(Tournament.id)).select_from(query.subquery())
-        result = await self.db.execute(count_query)
-        return result.scalar()
+        """DEPRECATED: Count tournaments matching the filters"""
+        _, total = await self.get_tournaments_with_counts_and_total(
+            format=format,
+            status=status,
+            start_date_from=start_date_from,
+            start_date_to=start_date_to,
+            location=location,
+            created_by=created_by,
+            limit=1,  # We only need the count
+            offset=0
+        )
+        return total
     
     async def get_upcoming_tournaments(self, limit: int = 10) -> List[Tournament]:
         """Get upcoming tournaments (not yet started)"""
@@ -398,4 +363,85 @@ class TournamentRepository(BaseRepository[Tournament]):
             "message": f"Successfully removed {player_to_remove.full_name or player_to_remove.email} from tournament '{tournament.name}'",
             "current_players": new_player_count,
             "max_players": tournament.max_players
-        } 
+        }
+    
+    async def get_tournaments_with_counts_and_total(
+        self,
+        format: Optional[TournamentSystem] = None,
+        status: Optional[str] = None,
+        start_date_from: Optional[date] = None,
+        start_date_to: Optional[date] = None,
+        location: Optional[str] = None,
+        created_by: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> tuple[List[Tournament], int]:
+        """
+        Get tournaments with player counts and total count in a single efficient operation.
+        Returns tuple of (tournaments_list, total_count)
+        """
+        # Subquery to count players for each tournament
+        player_count_subq = (
+            select(
+                tournament_player.c.tournament_id,
+                func.count(tournament_player.c.player_id).label('player_count')
+            )
+            .group_by(tournament_player.c.tournament_id)
+            .subquery()
+        )
+        
+        # Build base query with player counts
+        base_query = select(
+            Tournament,
+            func.coalesce(player_count_subq.c.player_count, 0).label('current_players')
+        ).select_from(
+            Tournament
+        ).outerjoin(
+            player_count_subq,
+            Tournament.id == player_count_subq.c.tournament_id
+        )
+        
+        # Apply filters
+        filters = []
+        if format:
+            filters.append(Tournament.system == format)
+        if status:
+            if status == "active_pending":
+                # Special case: show only active and pending tournaments
+                filters.append(Tournament.status.in_(["pending", "active"]))
+            else:
+                filters.append(Tournament.status == status)
+        if start_date_from:
+            filters.append(Tournament.start_date >= start_date_from)
+        if start_date_to:
+            filters.append(Tournament.start_date <= start_date_to)
+        if location:
+            filters.append(Tournament.location.ilike(f"%{location}%"))
+        if created_by:
+            filters.append(Tournament.created_by == created_by)
+        
+        if filters:
+            base_query = base_query.filter(and_(*filters))
+        
+        # First, get the total count (before pagination)
+        count_query = select(func.count()).select_from(base_query.subquery())
+        total_result = await self.db.execute(count_query)
+        total_count = total_result.scalar() or 0
+        
+        # Then get paginated results with ordering
+        paginated_query = base_query.order_by(
+            Tournament.start_date.asc(), 
+            Tournament.created_at.desc()
+        ).offset(offset).limit(limit)
+        
+        result = await self.db.execute(paginated_query)
+        rows = result.all()
+        
+        # Add current_players attribute to each tournament
+        tournaments = []
+        for row in rows:
+            tournament = row[0]
+            tournament.current_players = row[1]
+            tournaments.append(tournament)
+        
+        return tournaments, total_count 

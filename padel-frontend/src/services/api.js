@@ -219,6 +219,13 @@ export const tournamentAPI = {
     return response.data;
   },
 
+  // Finish tournament
+  finishTournament: async (id) => {
+    console.log('🔍 tournamentAPI: Finishing tournament', id);
+    const response = await api.post(`/tournaments/${id}/finish`);
+    return response.data;
+  },
+
   // Get current round matches
   getCurrentRoundMatches: async (id) => {
     console.log('🔍 tournamentAPI: Getting current round matches', id);
@@ -234,10 +241,54 @@ export const tournamentAPI = {
   },
 
   // Estimate duration
-  estimateDuration: async (system, players, courts) => {
-    console.log('🔍 tournamentAPI: Estimating duration', system, players, courts);
-    const params = new URLSearchParams({ system, players, courts });
+  estimateDuration: async (system, players, courts, pointsPerGame = 21, secondsPerPoint = 25, restSeconds = 60) => {
+    console.log('🔍 tournamentAPI: Estimating duration', system, players, courts, pointsPerGame, secondsPerPoint, restSeconds);
+    const params = new URLSearchParams({ 
+      system, 
+      players: players.toString(), 
+      courts: courts.toString(),
+      points_per_game: pointsPerGame.toString(),
+      seconds_per_point: secondsPerPoint.toString(),
+      rest_seconds: restSeconds.toString()
+    });
     const response = await api.get(`/tournaments/estimate-duration?${params.toString()}`);
+    return response.data;
+  },
+
+  // Calculate optimal points
+  calculateOptimalPoints: async (system, players, courts, hours, secondsPerPoint = 25, restSeconds = 60) => {
+    console.log('🔍 tournamentAPI: Calculating optimal points', system, players, courts, hours, secondsPerPoint, restSeconds);
+    const params = new URLSearchParams({ 
+      system, 
+      players: players.toString(), 
+      courts: courts.toString(),
+      hours: hours.toString(),
+      seconds_per_point: secondsPerPoint.toString(),
+      rest_seconds: restSeconds.toString()
+    });
+    const response = await api.get(`/tournaments/calculate-optimal-points?${params.toString()}`);
+    return response.data;
+  },
+  
+  // Get comprehensive tournament planning advice
+  getTournamentPlanningAdvice: async (params) => {
+    console.log('🔍 tournamentAPI: Getting tournament planning advice', params);
+    const queryParams = new URLSearchParams();
+    
+    // Add required parameters
+    queryParams.append('players', params.players.toString());
+    queryParams.append('courts', params.courts.toString());
+    queryParams.append('hours', params.hours.toString());
+    queryParams.append('seconds_per_point', (params.secondsPerPoint || 25).toString());
+    queryParams.append('rest_seconds', (params.restSeconds || 60).toString());
+    queryParams.append('system', params.system || 'AMERICANO');
+    
+    // Add optional points_per_match if provided
+    if (params.pointsPerMatch) {
+      queryParams.append('points_per_match', params.pointsPerMatch.toString());
+    }
+    
+    const response = await api.get(`/tournaments/tournament-planning-advice?${queryParams.toString()}`);
     return response.data;
   },
 
@@ -314,12 +365,6 @@ export const tournamentAPI = {
     return response.data;
   },
 
-  // Advance tournament to next round
-  advanceToNextRound: async (tournamentId) => {
-    console.log('🔍 tournamentAPI: Advancing tournament to next round', tournamentId);
-    const response = await api.post(`/tournaments/${tournamentId}/advance-round`);
-    return response.data;
-  },
 };
 
 // User API

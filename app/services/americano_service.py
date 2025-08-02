@@ -64,7 +64,61 @@ class AmericanoTournamentService(BaseTournamentFormat):
         return num_players - 1
 
     @staticmethod
-    def estimate_duration(num_players: int, courts: int, points_per_game: int = 21, seconds_per_point: int = 25) -> tuple[int, int]:
+    def calculate_optimal_points_per_match(num_players: int,
+                                         courts: int,
+                                         available_hours: float,
+                                         seconds_per_point: int = 25,
+                                         resting_between_matches_seconds: int = 60) -> int:
+        """
+        Calculate optimal points per match based on time constraints.
+        Returns the maximum points that fit within the available time.
+        
+        Args:
+            num_players: Number of players in tournament
+            courts: Number of courts available
+            available_hours: Available time in hours
+            seconds_per_point: Average time per point in seconds (default: 25)
+            resting_between_matches_seconds: Rest time between matches (default: 60)
+        
+        Returns:
+            int: Maximum points per match that fit within time constraint
+        """
+        if num_players < 4 or num_players % 2 != 0 or courts < 1 or available_hours <= 0:
+            raise ValueError("Invalid parameters")
+        
+        # Calculate tournament structure
+        total_rounds = num_players - 1
+        matches_per_round = num_players // 4
+        total_matches = total_rounds * matches_per_round
+        
+        # Available time in minutes
+        available_minutes = available_hours * 60
+        
+        # Test different point values to find the maximum that fits
+        # Start from a high value and work down
+        for points in range(48, 15, -4):  # Test 48, 44, 40, 36, 32, 28, 24, 20, 16
+            # Calculate time needed using the same formula as estimate_duration
+            seconds_per_match = (points * seconds_per_point) + resting_between_matches_seconds
+            minutes_per_match = seconds_per_match / 60
+            
+            # Total time = (total_matches * minutes_per_match) / courts
+            # This formula assumes matches are distributed across courts
+            total_minutes_needed = (total_matches * minutes_per_match) / courts
+            
+            # Check if this fits within available time
+            if total_minutes_needed <= available_minutes:
+                return points
+        
+        # If nothing fits, return minimum
+        return 16
+
+    @staticmethod
+    def estimate_duration(num_players: int,
+                          courts: int,
+                          points_per_game: int = 21,
+                          seconds_per_point: int = 25,
+                          resting_between_matches_seconds: int = 60,
+                          minutes_per_match: int = 10) -> tuple[int, int]:
         """
         Estimate tournament duration in minutes and return total rounds.
         
@@ -93,8 +147,9 @@ class AmericanoTournamentService(BaseTournamentFormat):
         # Calculate time per match
         # T_m = G * T_p (points per game * seconds per point)
         seconds_per_match = points_per_game * seconds_per_point
+        seconds_per_match += resting_between_matches_seconds
         minutes_per_match = seconds_per_match / 60
-        
+
         # Calculate total time needed
         # T_t = (M * T_m) / C (total matches * minutes per match / courts)
         total_minutes = (total_matches * minutes_per_match) / courts
@@ -274,6 +329,12 @@ class AmericanoTournamentService(BaseTournamentFormat):
                         stats['ties'] += 1
         
         return player_stats
+    
+    def get_total_rounds(self) -> int:
+        """
+        Override to calculate total rounds without generating all rounds.
+        """
+        return self._calculate_optimal_rounds()
     
     def is_tournament_complete(self, current_round: int) -> bool:
         """

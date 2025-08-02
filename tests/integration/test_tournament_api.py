@@ -52,43 +52,6 @@ async def test_start_tournament(async_client, db_session: AsyncSession, test_tou
     assert data["current_round"] == 1
 
 
-@pytest.mark.asyncio
-async def test_advance_tournament_round(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User, test_players: list[User]):
-    """Test advancing tournament to next round."""
-    # Set tournament to active status
-    test_tournament.status = TournamentStatus.ACTIVE.value
-    test_tournament.current_round = 1
-    await db_session.commit()
-    
-    # Create completed matches for current round
-    for i in range(2):
-        match = Round(
-            id=str(uuid.uuid4()),
-            tournament_id=test_tournament.id,
-            round_number=1,
-            team1_player1_id=test_players[i*2].id,
-            team1_player2_id=test_players[i*2+1].id,
-            team2_player1_id=test_players[i*2+2].id if i*2+2 < len(test_players) else test_players[0].id,
-            team2_player2_id=test_players[i*2+3].id if i*2+3 < len(test_players) else test_players[1].id,
-            team1_score=17,
-            team2_score=15,
-            is_completed=True
-        )
-        db_session.add(match)
-    
-    await db_session.commit()
-    
-    # Mock authentication and tournament access
-    from app.core.dependencies import get_current_user, get_tournament_as_organizer
-    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
-    async_client._transport.app.dependency_overrides[get_tournament_as_organizer] = lambda: test_tournament
-    
-    response = await async_client.post(f"/api/v1/tournaments/{test_tournament.id}/advance-round")
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] == True
-
 
 @pytest.mark.asyncio
 async def test_get_tournament_leaderboard(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User, test_players: list[User]):

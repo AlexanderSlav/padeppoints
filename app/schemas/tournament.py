@@ -64,6 +64,7 @@ class TournamentResponse(TournamentBase):
     created_by: str
     status: str
     current_round: int
+    current_players: Optional[int] = 0
     
     model_config = {"from_attributes": True}
 

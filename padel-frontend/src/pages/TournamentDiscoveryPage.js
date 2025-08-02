@@ -9,12 +9,13 @@ const TournamentDiscoveryPage = () => {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
     format: '',
-    status: '',
+    status: 'active_pending',  // Default to showing only active and pending
     location: '',
     created_by_me: false,
     limit: 20,
     offset: 0
   });
+  const [showCompleted, setShowCompleted] = useState(false);
   const [formats, setFormats] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [total, setTotal] = useState(0);
@@ -65,7 +66,7 @@ const TournamentDiscoveryPage = () => {
   const clearFilters = () => {
     setFilters({
       format: '',
-      status: '',
+      status: 'active_pending',  // Reset to default active & pending
       location: '',
       created_by_me: false,
       limit: 20,
@@ -189,12 +190,11 @@ const TournamentDiscoveryPage = () => {
                   fontSize: '14px'
                 }}
               >
+                <option value="active_pending">Active & Pending</option>
                 <option value="">All Statuses</option>
-                {statuses.map(status => (
-                  <option key={status.value} value={status.value}>
-                    {status.name}
-                  </option>
-                ))}
+                <option value="pending">Pending Only</option>
+                <option value="active">Active Only</option>
+                <option value="completed">Completed</option>
               </select>
             </div>
 
@@ -402,7 +402,7 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '24px', fontSize: '14px' }}>
           <span style={{ color: '#4a5568' }}>
-            <strong>Players:</strong> {tournament.current_round || 0} / {tournament.max_players}
+            <strong>Players:</strong> {tournament.current_players || 0} / {tournament.max_players}
           </span>
           <span style={{ color: '#4a5568' }}>
             <strong>Round:</strong> {tournament.current_round || 1}

@@ -75,7 +75,8 @@ async def list_tournaments(
     # Determine created_by filter
     created_by = current_user.id if created_by_me else None
     
-    tournaments = await tournament_repo.get_all_tournaments(
+    # Get tournaments and total count in a single efficient operation
+    tournaments, total = await tournament_repo.get_tournaments_with_counts_and_total(
         format=format,
         status=status,
         start_date_from=start_date_from,
@@ -84,15 +85,6 @@ async def list_tournaments(
         created_by=created_by,
         limit=limit,
         offset=offset
-    )
-    
-    total = await tournament_repo.count_tournaments(
-        format=format,
-        status=status,
-        start_date_from=start_date_from,
-        start_date_to=start_date_to,
-        location=location,
-        created_by=created_by
     )
     
     return TournamentListResponse(tournaments=tournaments, total=total)
@@ -153,20 +145,209 @@ async def estimate_tournament_duration(
     courts: int = Query(1, ge=1),
     system: TournamentSystem = Query(TournamentSystem.AMERICANO),
     points_per_game: int = Query(21, ge=1),
+    seconds_per_point: int = Query(25, ge=10),
+    rest_seconds: int = Query(60, ge=0),
     current_user: User = Depends(get_current_user)
 ):
     """Estimate tournament duration for given settings."""
     if system != TournamentSystem.AMERICANO:
         raise HTTPException(status_code=400, detail="Only Americano supported")
 
-    minutes, rounds = AmericanoTournamentService.estimate_duration(num_players=players, courts=courts, points_per_game=points_per_game)
+    minutes, rounds = AmericanoTournamentService.estimate_duration(
+        num_players=players, 
+        courts=courts, 
+        points_per_game=points_per_game,
+        seconds_per_point=seconds_per_point,
+        resting_between_matches_seconds=rest_seconds
+    )
     return {
         "system": system.value,
         "players": players,
         "courts": courts,
+        "points_per_game": points_per_game,
+        "seconds_per_point": seconds_per_point,
+        "rest_seconds": rest_seconds,
         "total_rounds": rounds,
         "estimated_minutes": minutes
     }
+
+@router.get("/calculate-optimal-points")
+async def calculate_optimal_points(
+    players: int = Query(..., ge=4),
+    courts: int = Query(1, ge=1),
+    hours: float = Query(..., gt=0),
+    seconds_per_point: int = Query(25, ge=10),
+    rest_seconds: int = Query(60, ge=0),
+    system: TournamentSystem = Query(TournamentSystem.AMERICANO),
+    current_user: User = Depends(get_current_user)
+):
+    """Calculate optimal points per match based on time constraints."""
+    if system != TournamentSystem.AMERICANO:
+        raise HTTPException(status_code=400, detail="Only Americano supported")
+    
+    try:
+        optimal_points = AmericanoTournamentService.calculate_optimal_points_per_match(
+            num_players=players, 
+            courts=courts, 
+            available_hours=hours,
+            seconds_per_point=seconds_per_point,
+            resting_between_matches_seconds=rest_seconds
+        )
+        
+        # Also calculate duration with these optimal points
+        minutes, rounds = AmericanoTournamentService.estimate_duration(
+            num_players=players, 
+            courts=courts, 
+            points_per_game=optimal_points,
+            seconds_per_point=seconds_per_point,
+            resting_between_matches_seconds=rest_seconds
+        )
+        
+        return {
+            "system": system.value,
+            "players": players,
+            "courts": courts,
+            "hours": hours,
+            "seconds_per_point": seconds_per_point,
+            "rest_seconds": rest_seconds,
+            "optimal_points_per_match": optimal_points,
+            "total_rounds": rounds,
+            "estimated_minutes": minutes
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/tournament-planning-advice")
+async def get_tournament_planning_advice(
+    players: int = Query(..., ge=4),
+    courts: int = Query(1, ge=1),
+    hours: float = Query(..., gt=0),
+    points_per_match: Optional[int] = Query(None, ge=1),
+    seconds_per_point: int = Query(25, ge=10),
+    rest_seconds: int = Query(60, ge=0),
+    system: TournamentSystem = Query(TournamentSystem.AMERICANO),
+    current_user: User = Depends(get_current_user)
+):
+    """Get comprehensive tournament planning advice with all calculations done backend."""
+    if system != TournamentSystem.AMERICANO:
+        raise HTTPException(status_code=400, detail="Only Americano format is currently supported")
+    
+    if players % 4 != 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="Number of players must be divisible by 4 for Americano format"
+        )
+    
+    try:
+        # If points not specified, calculate optimal
+        if points_per_match is None:
+            points_per_match = AmericanoTournamentService.calculate_optimal_points_per_match(
+                num_players=players,
+                courts=courts,
+                available_hours=hours,
+                seconds_per_point=seconds_per_point,
+                resting_between_matches_seconds=rest_seconds
+            )
+            was_calculated = True
+        else:
+            was_calculated = False
+        
+        # Calculate duration with chosen points
+        estimated_minutes, total_rounds = AmericanoTournamentService.estimate_duration(
+            num_players=players,
+            courts=courts,
+            points_per_game=points_per_match,
+            seconds_per_point=seconds_per_point,
+            resting_between_matches_seconds=rest_seconds
+        )
+        
+        # Calculate tournament metrics
+        available_minutes = hours * 60
+        matches_per_round = players // 4  # Always players/4, courts only affect scheduling
+        total_matches = total_rounds * matches_per_round
+        
+        # Calculate completable rounds
+        if estimated_minutes <= available_minutes:
+            # Can complete all rounds
+            completable_rounds = total_rounds
+            actual_time_used = estimated_minutes
+            efficiency = round((estimated_minutes / available_minutes) * 100)
+            status = "complete"
+        else:
+            # Can only complete partial rounds
+            minutes_per_round = estimated_minutes / total_rounds
+            completable_rounds = int(available_minutes / minutes_per_round)
+            actual_time_used = available_minutes
+            efficiency = 100  # Using all available time
+            status = "partial"
+        
+        # Calculate total points
+        total_points = completable_rounds * matches_per_round * points_per_match
+        
+        # Generate recommendation message
+        if status == "complete":
+            recommendation = (
+                f"✅ Perfect! You can complete all {total_rounds} rounds "
+                f"in {hours} hours with {courts} courts."
+            )
+            if was_calculated:
+                recommendation += f" Maximum points per match: {points_per_match}"
+        else:
+            # Calculate precise time needed
+            hours_needed = estimated_minutes / 60
+            hours_int = int(hours_needed)
+            minutes_remainder = int((hours_needed - hours_int) * 60)
+            
+            if minutes_remainder > 0:
+                time_needed_str = f"{hours_int}h {minutes_remainder}m"
+            else:
+                time_needed_str = f"{hours_int} hours"
+            
+            recommendation = (
+                f"⚠️ You can complete {completable_rounds} of {total_rounds} rounds "
+                f"in {hours} hours. "
+                f"Need {time_needed_str} for full tournament."
+            )
+            if was_calculated:
+                recommendation += f" Maximum points per match: {points_per_match}"
+        
+        return {
+            "system": system.value,
+            "input": {
+                "players": players,
+                "courts": courts,
+                "available_hours": hours,
+                "seconds_per_point": seconds_per_point,
+                "rest_seconds": rest_seconds,
+                "points_per_match": points_per_match,
+                "was_calculated": was_calculated
+            },
+            "tournament_structure": {
+                "total_rounds": total_rounds,
+                "matches_per_round": matches_per_round,
+                "total_matches": total_matches,
+                "completable_rounds": completable_rounds,
+                "completable_matches": completable_rounds * matches_per_round
+            },
+            "time_analysis": {
+                "estimated_total_minutes": round(estimated_minutes, 1),
+                "available_minutes": available_minutes,
+                "actual_time_used": round(actual_time_used, 1),
+                "minutes_per_round": round(estimated_minutes / total_rounds, 1),
+                "efficiency_percentage": efficiency,
+                "status": status
+            },
+            "points_analysis": {
+                "points_per_match": points_per_match,
+                "total_possible_points": total_rounds * matches_per_round * points_per_match,
+                "achievable_points": total_points
+            },
+            "recommendation": recommendation
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/{tournament_id}", response_model=TournamentResponse)
@@ -578,70 +759,40 @@ async def get_all_rounds(
         return []
 
 
-@router.post("/{tournament_id}/advance-round")
-async def advance_to_next_round(
+@router.post("/{tournament_id}/finish", response_model=TournamentResponse)
+async def finish_tournament(
     tournament: Tournament = Depends(get_tournament_as_organizer),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db)
 ):
-    """Manually advance tournament to next round (organizer only)"""
-    logger.info(f"Advancing tournament {tournament.id} to next round by user {current_user.id}")
+    """Finish/complete a tournament by setting status to completed."""
+    logger.info(f"Finishing tournament {tournament.id}")
     
     try:
+        # Validate tournament state before finishing
         if tournament.status != TournamentStatus.ACTIVE.value:
+            logger.warning(f"Attempt to finish tournament {tournament.id} with status {tournament.status}")
             raise HTTPException(
                 status_code=400, 
-                detail=f"Cannot advance round. Tournament status: {tournament.status}"
+                detail=f"Tournament cannot be finished. Current status: {tournament.status}. Only active tournaments can be finished."
             )
         
-        # Check if all matches in current round are completed
-        result = await db.execute(
-            select(Round)
-            .filter(Round.tournament_id == tournament.id)
-            .filter(Round.round_number == tournament.current_round)
-        )
-        current_round_matches = result.scalars().all()
-        
-        if not current_round_matches:
-            raise HTTPException(
-                status_code=400, 
-                detail="No matches found for current round"
-            )
-        
-        incomplete_matches = [match for match in current_round_matches if not match.is_completed]
-        if incomplete_matches:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Cannot advance round. {len(incomplete_matches)} matches are still incomplete"
-            )
-        
-        # Initialize tournament service
-        tournament_service = TournamentService(db)
-        format_service = tournament_service.get_format_service(tournament)
-        
-        # Check if tournament should be completed
-        if format_service.is_tournament_complete(tournament.current_round + 1):
-            tournament.status = TournamentStatus.COMPLETED.value
-            logger.info(f"Tournament {tournament.id} completed")
-        else:
-            tournament.current_round += 1
-            logger.info(f"Tournament {tournament.id} advanced to round {tournament.current_round}")
-        
+        # Update tournament status to completed
+        tournament.status = TournamentStatus.COMPLETED.value
         await db.commit()
         await db.refresh(tournament)
         
-        return {
-            "success": True,
-            "message": f"Tournament {'completed' if tournament.status == TournamentStatus.COMPLETED.value else f'advanced to round {tournament.current_round}'}",
-            "tournament": tournament
-        }
+        logger.info(f"Successfully finished tournament {tournament.id}")
+        return tournament
         
     except HTTPException:
+        # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        logger.error(f"Error advancing tournament {tournament.id}: {str(e)}")
+        logger.error(f"Unexpected error finishing tournament {tournament.id}: {str(e)}")
         logger.exception("Full exception details:")
         raise HTTPException(
             status_code=500, 
-            detail="An unexpected error occurred while advancing the tournament"
+            detail="An unexpected error occurred while finishing the tournament"
         )
+
+

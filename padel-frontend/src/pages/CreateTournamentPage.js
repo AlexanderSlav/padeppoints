@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { tournamentAPI } from '../services/api';
+import TournamentAdviceCalculator from '../components/TournamentAdviceCalculator';
 
 const CreateTournamentPage = () => {
   const { user } = useAuth();
@@ -8,6 +9,7 @@ const CreateTournamentPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [estimatedDuration, setEstimatedDuration] = useState(null);
+  const [showAdviceModal, setShowAdviceModal] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -29,12 +31,13 @@ const CreateTournamentPage = () => {
   };
 
   useEffect(() => {
-    const calc = async () => {
+    const timeoutId = setTimeout(async () => {
       try {
         const players = parseInt(formData.max_players);
         const courts = parseInt(formData.courts);
-        if (players >= 4 && courts > 0) {
-          const data = await tournamentAPI.estimateDuration('AMERICANO', players, courts);
+        const pointsPerMatch = parseInt(formData.points_per_match);
+        if (players >= 4 && courts > 0 && pointsPerMatch > 0) {
+          const data = await tournamentAPI.estimateDuration('AMERICANO', players, courts, pointsPerMatch);
           setEstimatedDuration(data);
         } else {
           setEstimatedDuration(null);
@@ -43,9 +46,11 @@ const CreateTournamentPage = () => {
         console.error('Estimate duration error', err);
         setEstimatedDuration(null);
       }
-    };
-    calc();
-  }, [formData.max_players, formData.courts]);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.max_players, formData.courts, formData.points_per_match]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -133,9 +138,23 @@ const CreateTournamentPage = () => {
             Tournament Organizer
           </p>
         </div>
-        <a href="/dashboard" className="btn btn-secondary" style={{ fontSize: '14px', padding: '8px 16px' }}>
-          ← Back to Dashboard
-        </a>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setShowAdviceModal(true)}
+            className="btn"
+            style={{ 
+              fontSize: '14px', 
+              padding: '8px 16px',
+              backgroundColor: '#805ad5',
+              border: 'none'
+            }}
+          >
+            💡 Get Advice
+          </button>
+          <a href="/dashboard" className="btn btn-secondary" style={{ fontSize: '14px', padding: '8px 16px' }}>
+            ← Back to Dashboard
+          </a>
+        </div>
       </div>
 
       {/* Tournament Form */}
@@ -285,6 +304,14 @@ const CreateTournamentPage = () => {
           </div>
         </form>
       </div>
+
+      {/* Advice Modal */}
+      {showAdviceModal && (
+        <TournamentAdviceCalculator 
+          isModal={true}
+          onClose={() => setShowAdviceModal(false)}
+        />
+      )}
     </div>
   );
 };

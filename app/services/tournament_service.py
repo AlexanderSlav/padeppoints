@@ -24,7 +24,7 @@ class TournamentService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    def get_format_service(self, tournament: Tournament) -> BaseTournamentFormat:
+    def get_format_service(self, tournament: Tournament, players: Optional[List[User]] = None) -> BaseTournamentFormat:
         """
         Get the appropriate format service for the tournament system.
         """
@@ -32,13 +32,13 @@ class TournamentService:
         if not format_class:
             raise ValueError(f"Unsupported tournament system: {tournament.system}")
         
-        return format_class(tournament)
+        return format_class(tournament, players)
     
-    def validate_tournament_setup(self, tournament: Tournament) -> bool:
+    def validate_tournament_setup(self, tournament: Tournament, players: Optional[List[User]] = None) -> bool:
         """
         Validate that the tournament is properly configured for its format.
         """
-        format_service = self.get_format_service(tournament)
+        format_service = self.get_format_service(tournament, players)
         return format_service.validate_player_count()
     
     async def start_tournament(self, tournament_id: str) -> Tournament:
@@ -58,11 +58,11 @@ class TournamentService:
             raise ValueError(f"Tournament {tournament_id} cannot be started. Current status: {tournament.status}")
         
         # Validate tournament setup
-        if not self.validate_tournament_setup(tournament):
+        if not self.validate_tournament_setup(tournament, list(tournament.players)):
             raise ValueError("Tournament setup is invalid for the selected format")
         
         # Get format service and generate rounds
-        format_service = self.get_format_service(tournament)
+        format_service = self.get_format_service(tournament, list(tournament.players))
         rounds_data = format_service.generate_rounds()
         
         # Create Round objects in database
@@ -119,9 +119,6 @@ class TournamentService:
         if not match:
             raise ValueError(f"Match {match_id} not found")
         
-        if match.is_completed:
-            raise ValueError(f"Match {match_id} is already completed")
-        
         # Get tournament to validate points_per_match
         tournament_result = await self.db.execute(
             select(Tournament)
@@ -131,6 +128,10 @@ class TournamentService:
         tournament = tournament_result.scalar_one_or_none()
         if not tournament:
             raise ValueError(f"Tournament {match.tournament_id} not found")
+        
+        # Prevent editing results if tournament is completed
+        if tournament.status == TournamentStatus.COMPLETED.value:
+            raise ValueError(f"Cannot edit results - tournament {tournament.id} is already completed")
         
         # Validate scores
         if team1_score < 0 or team2_score < 0:
@@ -163,7 +164,11 @@ class TournamentService:
         """
         Check if all matches in current round are completed and advance to next round.
         """
-        result = await self.db.execute(select(Tournament).filter(Tournament.id == tournament_id))
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == tournament_id)
+        )
         tournament = result.scalar_one_or_none()
         if not tournament:
             return
@@ -178,13 +183,12 @@ class TournamentService:
         
         if all(match.is_completed for match in current_round_matches):
             # All matches in current round completed
-            format_service = self.get_format_service(tournament)
+            format_service = self.get_format_service(tournament, list(tournament.players))
             
-            # Check if tournament is complete
-            if format_service.is_tournament_complete(tournament.current_round + 1):
-                tournament.status = TournamentStatus.COMPLETED.value
-            else:
+            # Check if tournament is complete - advance to next round if not the last round
+            if not format_service.is_tournament_complete(tournament.current_round + 1):
                 tournament.current_round += 1
+            # Note: Tournament will only be finished manually by organizer via finish button
             
             await self.db.commit()
     
@@ -210,7 +214,7 @@ class TournamentService:
         completed_rounds = result.scalars().all()
         
         # Calculate scores using format service
-        format_service = self.get_format_service(tournament)
+        format_service = self.get_format_service(tournament, list(tournament.players))
         return format_service.calculate_player_scores(completed_rounds)
     
     async def get_tournament_leaderboard(self, tournament_id: str) -> List[Dict]:
@@ -234,7 +238,7 @@ class TournamentService:
         )
         completed_rounds = result.scalars().all()
         
-        format_service = self.get_format_service(tournament)
+        format_service = self.get_format_service(tournament, list(tournament.players))
         
         # Get comprehensive player statistics if available
         if hasattr(format_service, 'calculate_player_statistics'):
@@ -301,7 +305,7 @@ class TournamentService:
             return None
         
         player_scores = await self.get_player_scores(tournament_id)
-        format_service = self.get_format_service(tournament)
+        format_service = self.get_format_service(tournament, list(tournament.players))
         winner_id = format_service.get_tournament_winner(player_scores)
         
         if winner_id:

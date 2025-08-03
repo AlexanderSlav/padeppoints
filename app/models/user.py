@@ -28,6 +28,14 @@ class User(Base):
         back_populates="creator", 
         foreign_keys="Tournament.created_by"
     )
+    
+    # One-to-one relationship with player rating
+    rating = relationship(
+        "PlayerRating",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, full_name={self.full_name})>"

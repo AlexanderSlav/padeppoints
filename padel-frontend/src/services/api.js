@@ -396,4 +396,39 @@ export const userAPI = {
   },
 };
 
+// Player API (ELO and statistics)
+export const playerAPI = {
+  // Get player profile with ELO
+  getProfile: async (userId) => {
+    console.log('🔍 playerAPI: Getting profile for', userId);
+    const response = await api.get(`/players/profile/${userId}`);
+    return response.data;
+  },
+
+  // Get my profile
+  getMyProfile: async () => {
+    console.log('🔍 playerAPI: Getting my profile');
+    const response = await api.get('/players/profile');
+    return response.data;
+  },
+
+  // Get leaderboard
+  getLeaderboard: async (limit = 50) => {
+    console.log('🔍 playerAPI: Getting leaderboard');
+    const response = await api.get(`/players/leaderboard?limit=${limit}`);
+    return response.data;
+  },
+
+  // Search players
+  searchPlayers: async (query, limit = 20) => {
+    console.log('🔍 playerAPI: Searching players', query);
+    const params = new URLSearchParams({
+      query,
+      limit: limit.toString()
+    });
+    const response = await api.get(`/players/search?${params.toString()}`);
+    return response.data;
+  }
+};
+
 export default api; 

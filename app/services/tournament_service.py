@@ -7,6 +7,7 @@ from app.models.round import Round
 from app.models.user import User
 from app.services.base_tournament_format import BaseTournamentFormat
 from app.services.americano_service import AmericanoTournamentService
+from app.services.elo_service import ELOService
 import uuid
 
 class TournamentService:
@@ -151,6 +152,15 @@ class TournamentService:
         match.team1_score = team1_score
         match.team2_score = team2_score
         match.is_completed = True
+        
+        # Update ELO ratings
+        elo_service = ELOService(self.db)
+        try:
+            rating_changes = await elo_service.update_match_ratings(match)
+        except Exception as e:
+            # Log but don't fail the match recording if ELO update fails
+            print(f"Failed to update ELO ratings: {e}")
+            rating_changes = {}
         
         await self.db.commit()
         await self.db.refresh(match)

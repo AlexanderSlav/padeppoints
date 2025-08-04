@@ -14,9 +14,9 @@ class PlayerRating(Base):
     user_id = Column(String, ForeignKey("users.id"), unique=True, nullable=False)
     
     # ELO Rating
-    current_rating = Column(Float, default=1500.0, nullable=False)
-    peak_rating = Column(Float, default=1500.0, nullable=False)
-    lowest_rating = Column(Float, default=1500.0, nullable=False)
+    current_rating = Column(Float, default=1000.0, nullable=False)
+    peak_rating = Column(Float, default=1000.0, nullable=False)
+    lowest_rating = Column(Float, default=1000.0, nullable=False)
     
     # Statistics
     matches_played = Column(Integer, default=0, nullable=False)

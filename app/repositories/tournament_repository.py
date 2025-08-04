@@ -25,6 +25,15 @@ class TournamentRepository(BaseRepository[Tournament]):
         result = await self.db.execute(select(Tournament).filter(Tournament.created_by == user_id))
         return result.scalars().all()
     
+    async def get_by_ids(self, tournament_ids: List[str]) -> List[Tournament]:
+        """Get tournaments by their IDs"""
+        if not tournament_ids:
+            return []
+        result = await self.db.execute(
+            select(Tournament).filter(Tournament.id.in_(tournament_ids))
+        )
+        return result.scalars().all()
+    
     async def join_tournament(self, tournament_id: str, player_id: str) -> dict:
         """
         Join a tournament with proper validation

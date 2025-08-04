@@ -65,6 +65,7 @@ class TournamentResponse(TournamentBase):
     status: str
     current_round: int
     current_players: Optional[int] = 0
+    user_placement: Optional[int] = None  # User's final position in tournament
     
     model_config = {"from_attributes": True}
 

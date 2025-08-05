@@ -189,55 +189,7 @@ class TournamentRepository(BaseRepository[Tournament]):
             "can_join": tournament.status == TournamentStatus.PENDING.value and current_players < tournament.max_players
         }
     
-    # DEPRECATED: Use get_tournaments_with_counts_and_total instead
-    # This method is kept for backward compatibility but should be removed
-    async def get_all_tournaments(
-        self,
-        format: Optional[TournamentSystem] = None,
-        status: Optional[str] = None,
-        start_date_from: Optional[date] = None,
-        start_date_to: Optional[date] = None,
-        location: Optional[str] = None,
-        created_by: Optional[str] = None,
-        limit: int = 100,
-        offset: int = 0
-    ) -> List[Tournament]:
-        """DEPRECATED: Get tournaments with filtering options"""
-        tournaments, _ = await self.get_tournaments_with_counts_and_total(
-            format=format,
-            status=status,
-            start_date_from=start_date_from,
-            start_date_to=start_date_to,
-            location=location,
-            created_by=created_by,
-            limit=limit,
-            offset=offset
-        )
-        return tournaments
-    
-    # DEPRECATED: Use get_tournaments_with_counts_and_total instead
-    # This method is kept for backward compatibility but should be removed
-    async def count_tournaments(
-        self,
-        format: Optional[TournamentSystem] = None,
-        status: Optional[str] = None,
-        start_date_from: Optional[date] = None,
-        start_date_to: Optional[date] = None,
-        location: Optional[str] = None,
-        created_by: Optional[str] = None
-    ) -> int:
-        """DEPRECATED: Count tournaments matching the filters"""
-        _, total = await self.get_tournaments_with_counts_and_total(
-            format=format,
-            status=status,
-            start_date_from=start_date_from,
-            start_date_to=start_date_to,
-            location=location,
-            created_by=created_by,
-            limit=1,  # We only need the count
-            offset=0
-        )
-        return total
+
     
     async def get_upcoming_tournaments(self, limit: int = 10) -> List[Tournament]:
         """Get upcoming tournaments (not yet started)"""

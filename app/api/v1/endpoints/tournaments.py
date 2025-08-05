@@ -2,13 +2,10 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from datetime import date
-import uuid
 
+from app.api.v1.handlers.tournament_handlers import TournamentHandlers
 from app.models.tournament import Tournament, TournamentSystem, TournamentStatus
-from app.models.round import Round
 from app.models.user import User
 from app.schemas.tournament import (
     TournamentCreate, 
@@ -20,10 +17,8 @@ from app.schemas.tournament import (
     TournamentPlayersResponse
 )
 from app.schemas.round import MatchResultUpdate, RoundResponse
-from app.repositories.tournament_repository import TournamentRepository
+from app.schemas.responses import OperationResponse
 from app.repositories.round_repository import RoundRepository
-from app.services.tournament_service import TournamentService
-from app.services.americano_service import AmericanoTournamentService
 from app.db.base import get_db
 from app.core.dependencies import get_current_user, get_tournament_as_organizer, get_tournament_for_user
 
@@ -37,23 +32,7 @@ async def create_tournament(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new tournament"""
-    tournament_data = {
-        "id": str(uuid.uuid4()),
-        "name": tournament.name,
-        "description": tournament.description,
-        "location": tournament.location,
-        "start_date": tournament.start_date,
-        "entry_fee": tournament.entry_fee,
-        "max_players": tournament.max_players,
-        "system": tournament.system,
-        "points_per_match": tournament.points_per_match,
-        "courts": tournament.courts,
-        "created_by": current_user.id,
-        "status": TournamentStatus.PENDING.value
-    }
-    
-    tournament_repo = TournamentRepository(db)
-    return await tournament_repo.create(tournament_data)
+    return await TournamentHandlers.create_tournament(tournament, current_user, db)
 
 
 @router.get("/", response_model=TournamentListResponse)
@@ -70,24 +49,10 @@ async def list_tournaments(
     current_user: User = Depends(get_current_user)
 ):
     """List tournaments with filtering options"""
-    tournament_repo = TournamentRepository(db)
-    
-    # Determine created_by filter
-    created_by = current_user.id if created_by_me else None
-    
-    # Get tournaments and total count in a single efficient operation
-    tournaments, total = await tournament_repo.get_tournaments_with_counts_and_total(
-        format=format,
-        status=status,
-        start_date_from=start_date_from,
-        start_date_to=start_date_to,
-        location=location,
-        created_by=created_by,
-        limit=limit,
-        offset=offset
+    return await TournamentHandlers.list_tournaments(
+        format, status, start_date_from, start_date_to, location,
+        created_by_me, limit, offset, current_user, db
     )
-    
-    return TournamentListResponse(tournaments=tournaments, total=total)
 
 @router.get("/my", response_model=List[TournamentResponse])
 async def list_my_tournaments(
@@ -95,8 +60,9 @@ async def list_my_tournaments(
     current_user: User = Depends(get_current_user)
 ):
     """List tournaments created by the current user"""
-    tournament_repo = TournamentRepository(db)
-    return await tournament_repo.get_by_user(current_user.id)
+    return await TournamentHandlers.list_tournaments(
+        None, None, None, None, None, True, 100, 0, current_user, db
+    )
 
 @router.get("/joined", response_model=List[TournamentResponse])
 async def list_joined_tournaments(

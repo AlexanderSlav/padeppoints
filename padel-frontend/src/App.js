@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext';
+import AppLayout from './components/AppLayout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import CallbackPage from './pages/CallbackPage';
@@ -153,9 +154,11 @@ const App = () => {
   return (
     <AuthProvider>
       <Router>
-        <div className="App">
-          <AppRoutes />
-        </div>
+        <AppLayout>
+          <div className="App">
+            <AppRoutes />
+          </div>
+        </AppLayout>
       </Router>
     </AuthProvider>
   );

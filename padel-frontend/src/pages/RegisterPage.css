@@ -1,0 +1,144 @@
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-gradient);
+  padding: var(--space-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.register-page::before {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+  animation: pulse 20s ease-in-out infinite;
+}
+
+.register-container {
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+  animation: fadeInUp var(--transition-slow);
+}
+
+.register-brand {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.register-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.register-card .card-header {
+  margin-bottom: var(--space-xl);
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.register-footer {
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--bg-tertiary);
+}
+
+.register-links {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.success-card {
+  text-align: center;
+  padding: var(--space-3xl) var(--space-2xl);
+}
+
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-lg);
+  animation: fadeInUp var(--transition-base);
+}
+
+.success-card .card-title {
+  margin-bottom: var(--space-md);
+}
+
+.success-card .card-subtitle {
+  margin-bottom: var(--space-xl);
+}
+
+.alert {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  animation: fadeIn var(--transition-base);
+}
+
+.alert-error {
+  background: #fed7d7;
+  color: #c53030;
+  border: 1px solid #fc8181;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: color var(--transition-base);
+}
+
+.link-button:hover {
+  color: var(--primary-color);
+}
+
+.brand-logo {
+  font-size: 4rem;
+  margin-bottom: var(--space-md);
+  display: block;
+}
+
+.brand-name {
+  font-size: var(--font-size-3xl);
+  font-weight: bold;
+  margin-bottom: var(--space-xs);
+}
+
+.brand-tagline {
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .register-page {
+    padding: var(--space-md);
+  }
+  
+  .register-card {
+    padding: var(--space-xl);
+  }
+  
+  .brand-logo {
+    font-size: 3rem;
+  }
+  
+  .brand-name {
+    font-size: var(--font-size-2xl);
+  }
+}

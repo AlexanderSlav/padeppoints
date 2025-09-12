@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import '../styles/globals.css';
+import './RegisterPage.css';
 
 const RegisterPage = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -26,54 +30,106 @@ const RegisterPage = () => {
 
   if (success) {
     return (
-      <div className="container">
-        <div className="card" style={{ textAlign: 'center' }}>
-          <h2>Account created!</h2>
-          <p>Please log in with your credentials.</p>
-          <a href="/login" className="btn">Go to Login</a>
+      <div className="register-page">
+        <div className="register-container">
+          <div className="success-card card">
+            <div className="success-icon">✅</div>
+            <h2 className="card-title">Account Created!</h2>
+            <p className="card-subtitle">Your account has been successfully created. Please log in with your credentials.</p>
+            <button onClick={() => navigate('/login')} className="btn btn-primary btn-lg">
+              Go to Login
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <div className="header">
-        <h1>🎾 Tornetic</h1>
-      </div>
-      <div className="card">
-        <h2 style={{ marginBottom: '24px', textAlign: 'center', color: '#2d3748' }}>Create Account</h2>
-        {error && <div className="error">{error}</div>}
-        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <input
-            type="text"
-            placeholder="Full name (optional)"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            style={{ padding: '8px', fontSize: '16px' }}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ padding: '8px', fontSize: '16px' }}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ padding: '8px', fontSize: '16px' }}
-          />
-          <button className="btn" type="submit" disabled={loading} style={{ fontSize: '16px' }}>
-            {loading ? '🔄 Loading...' : 'Register'}
+    <div className="register-page">
+      <div className="register-container">
+        <div className="register-brand">
+          <span className="brand-logo">🏆</span>
+          <h1 className="brand-name gradient-text">Tornetic</h1>
+          <p className="brand-tagline">Join the tournament revolution</p>
+        </div>
+
+        <div className="register-card card">
+          <div className="card-header">
+            <h2 className="card-title text-center">Create Account</h2>
+            <p className="card-subtitle text-center">Start organizing tournaments in minutes</p>
+          </div>
+          
+          {error && (
+            <div className="alert alert-error">
+              <span>⚠️</span>
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleRegister} className="register-form">
+            <div className="form-group">
+              <label className="form-label">Full Name (Optional)</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Enter your full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                className="form-input"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="Create a strong password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <p className="form-helper">Must be at least 8 characters</p>
+            </div>
+            
+            <button 
+              className="btn btn-primary btn-full btn-lg" 
+              type="submit" 
+              disabled={loading}
+            >
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </button>
+          </form>
+          
+          <div className="register-footer">
+            <p className="text-center text-muted">
+              Already have an account?
+            </p>
+            <button 
+              onClick={() => navigate('/login')}
+              className="btn btn-ghost btn-full"
+            >
+              Sign In Instead
+            </button>
+          </div>
+        </div>
+        
+        <div className="register-links">
+          <button onClick={() => navigate('/')} className="link-button">
+            ← Back to Home
           </button>
-        </form>
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <a href="/login">Back to login</a>
         </div>
       </div>
     </div>

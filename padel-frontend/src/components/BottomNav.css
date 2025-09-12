@@ -1,0 +1,137 @@
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 65px;
+  z-index: 1000;
+  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.05);
+  padding: 0 10px;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: #8B95A6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  height: 100%;
+  min-width: 0;
+}
+
+.nav-item:hover {
+  color: #667eea;
+}
+
+.nav-item.active {
+  color: #667eea;
+}
+
+.nav-item.active .nav-label {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Icon styling */
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.nav-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.nav-item.active .nav-icon svg {
+  stroke-width: 2.5;
+}
+
+/* Label styling */
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8B95A6;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+/* Active indicator - subtle top border */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0 0 2px 2px;
+}
+
+/* Profile item special styling */
+.nav-item:last-child.active .nav-label {
+  color: #FF6B35;
+}
+
+.nav-item:last-child.active {
+  color: #FF6B35;
+}
+
+.nav-item:last-child.active::before {
+  background: #FF6B35;
+}
+
+/* Adjust main content to account for bottom nav */
+.app-container,
+.dashboard-page,
+.tournament-page {
+  padding-bottom: 75px;
+}
+
+/* Remove FAB when bottom nav is present */
+.mobile-fab {
+  display: none !important;
+}
+
+/* Tablet and Desktop: Keep bottom nav visible but style differently */
+@media (min-width: 769px) {
+  .bottom-nav {
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Small phones adjustment */
+@media (max-width: 360px) {
+  .nav-label {
+    font-size: 10px;
+  }
+  
+  .nav-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .bottom-nav {
+    height: 60px;
+  }
+}

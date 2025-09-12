@@ -18,8 +18,8 @@ const LandingPage = () => {
       <nav className="landing-nav">
         <div className="nav-container">
           <div className="logo">
-            <span className="logo-icon">🎾</span>
-            <span className="logo-text">PadelPoints</span>
+            <span className="logo-icon">🏆</span>
+            <span className="logo-text">Tornetic</span>
           </div>
           <div className="nav-links">
             <button className="nav-link" onClick={handleLogin}>Sign In</button>
@@ -29,49 +29,37 @@ const LandingPage = () => {
       </nav>
 
       <section className="hero">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            Organize Perfect <span className="highlight">Padel Tournaments</span>
-          </h1>
-          <p className="hero-subtitle">
-            Streamline your padel tournaments with automatic match scheduling, 
-            real-time scoring, and comprehensive player statistics
-          </p>
-          <div className="hero-actions">
-            <button className="btn-primary" onClick={handleGetStarted}>
-              Try PadelPoints Free
-            </button>
-            <button className="btn-secondary" onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}>
-              Learn More
-            </button>
-          </div>
-          <div className="hero-stats">
-            <div className="stat">
-              <span className="stat-number">1000+</span>
-              <span className="stat-label">Active Players</span>
-            </div>
-            <div className="stat">
-              <span className="stat-number">500+</span>
-              <span className="stat-label">Tournaments</span>
-            </div>
-            <div className="stat">
-              <span className="stat-number">10k+</span>
-              <span className="stat-label">Matches Played</span>
+        <div className="hero-container">
+          <div className="hero-content">
+            <h1 className="hero-title">
+              Organize Perfect <span className="highlight">Padel Tournaments</span>
+            </h1>
+            <p className="hero-subtitle">
+              Streamline your padel tournaments with automatic match scheduling, 
+              real-time scoring, and comprehensive player statistics
+            </p>
+            <div className="hero-actions">
+              <button className="btn-primary" onClick={handleGetStarted}>
+                Try Tornetic Free
+              </button>
+              <button className="btn-secondary" onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}>
+                Learn More
+              </button>
             </div>
           </div>
-        </div>
-        <div className="hero-visual">
-          <div className="floating-card card-1">
-            <div className="card-icon">🏆</div>
-            <div className="card-text">Tournament Created</div>
-          </div>
-          <div className="floating-card card-2">
-            <div className="card-icon">👥</div>
-            <div className="card-text">8 Players Joined</div>
-          </div>
-          <div className="floating-card card-3">
-            <div className="card-icon">📊</div>
-            <div className="card-text">Live Leaderboard</div>
+          <div className="hero-visual">
+            <div className="floating-card card-1">
+              <div className="card-icon">🏆</div>
+              <div className="card-text">Tournament Created</div>
+            </div>
+            <div className="floating-card card-2">
+              <div className="card-icon">👥</div>
+              <div className="card-text">8 Players Joined</div>
+            </div>
+            <div className="floating-card card-3">
+              <div className="card-icon">📊</div>
+              <div className="card-text">Live Leaderboard</div>
+            </div>
           </div>
         </div>
       </section>
@@ -97,11 +85,6 @@ const LandingPage = () => {
               <div className="feature-icon">📈</div>
               <h3>Player Statistics</h3>
               <p>Track performance metrics, win rates, and rankings across all tournaments</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">🤝</div>
-              <h3>Smart Matchmaking</h3>
-              <p>Intelligent pairing system ensures balanced matches and maximum court utilization</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">📱</div>
@@ -143,42 +126,10 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section className="testimonials">
-        <div className="testimonials-container">
-          <h2>Loved by Padel Communities</h2>
-          <div className="testimonials-grid">
-            <div className="testimonial">
-              <div className="stars">⭐⭐⭐⭐⭐</div>
-              <p>"PadelPoints transformed how we run our weekly tournaments. The automatic pairing saves us hours!"</p>
-              <div className="testimonial-author">
-                <strong>Carlos M.</strong>
-                <span>Tournament Organizer</span>
-              </div>
-            </div>
-            <div className="testimonial">
-              <div className="stars">⭐⭐⭐⭐⭐</div>
-              <p>"Finally, a tournament system that handles Americano format properly. The scoring is perfect!"</p>
-              <div className="testimonial-author">
-                <strong>Sofia L.</strong>
-                <span>Padel Club Manager</span>
-              </div>
-            </div>
-            <div className="testimonial">
-              <div className="stars">⭐⭐⭐⭐⭐</div>
-              <p>"Love the ELO rating system! It helps us create balanced matches every time."</p>
-              <div className="testimonial-author">
-                <strong>Miguel R.</strong>
-                <span>Pro Player</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="cta">
         <div className="cta-container">
           <h2>Ready to Elevate Your Padel Tournaments?</h2>
-          <p>Join thousands of players and organizers using PadelPoints</p>
+          <p>Join thousands of players and organizers using Tornetic</p>
           <button className="cta-button" onClick={handleGetStarted}>
             Start Free Today
           </button>
@@ -189,8 +140,8 @@ const LandingPage = () => {
         <div className="footer-container">
           <div className="footer-brand">
             <div className="logo">
-              <span className="logo-icon">🎾</span>
-              <span className="logo-text">PadelPoints</span>
+              <span className="logo-icon">🏆</span>
+              <span className="logo-text">Tornetic</span>
             </div>
             <p>Making padel tournaments simple and fun</p>
           </div>
@@ -210,7 +161,7 @@ const LandingPage = () => {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2024 PadelPoints. All rights reserved.</p>
+          <p>© 2024 Tornetic. All rights reserved.</p>
         </div>
       </footer>
     </div>

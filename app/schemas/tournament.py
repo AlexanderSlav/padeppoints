@@ -88,6 +88,8 @@ class TournamentPlayerResponse(BaseModel):
     id: str
     full_name: str
     email: Optional[str] = None
+    picture: Optional[str] = None
+    rating: float = 1000.0
 
 class TournamentPlayersResponse(BaseModel):
     tournament_id: str

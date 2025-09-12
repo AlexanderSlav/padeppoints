@@ -796,18 +796,62 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
               }}>
                 {index + 1}
               </div>
+              {/* Profile Picture */}
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                backgroundColor: '#e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: '#4a5568'
+              }}>
+                {player.picture ? (
+                  <img 
+                    src={player.picture} 
+                    alt={player.full_name || 'Player'} 
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover' 
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.textContent = (player.full_name || player.email || 'P')[0].toUpperCase();
+                    }}
+                  />
+                ) : (
+                  (player.full_name || player.email || 'P')[0].toUpperCase()
+                )}
+              </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: '#2d3748' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Link 
                     to={`/users/${player.id}/profile`}
                     style={{ 
                       textDecoration: 'none', 
-                      color: 'inherit',
+                      color: '#2d3748',
+                      fontWeight: '600',
                       cursor: 'pointer'
                     }}
                   >
                     {player.full_name || player.email}
                   </Link>
+                  {/* ELO Rating Badge */}
+                  <span style={{
+                    backgroundColor: '#805ad5',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {Math.round(player.rating || 1000)}
+                  </span>
                 </div>
                 <div style={{ fontSize: '14px', color: '#718096' }}>
                   {player.email}
@@ -839,9 +883,38 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
 };
 
 
+// Player Card Component for Court Visualization
+const PlayerCard = ({ player, isLeft }) => {
+  const bgColor = isLeft ? 'rgba(72, 187, 120, 0.9)' : 'rgba(66, 153, 225, 0.9)';
+  
+  return (
+    <div style={{
+      backgroundColor: bgColor,
+      color: 'white',
+      padding: '10px 14px',
+      borderRadius: '6px',
+      minWidth: '120px',
+      textAlign: 'center',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+      border: '2px solid rgba(255, 255, 255, 0.3)'
+    }}>
+      <div style={{ 
+        fontSize: '14px', 
+        fontWeight: '600',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
+      }}>
+        {player ? (player.full_name || player.email || 'Unknown') : 'TBD'}
+      </div>
+    </div>
+  );
+};
+
 const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlayerInTournament }) => {
   const [editingScores, setEditingScores] = useState({});
   const [submittingResults, setSubmittingResults] = useState({});
+
 
   if (!rounds || rounds.length === 0) {
     return (
@@ -944,9 +1017,11 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
 
   return (
     <div>
-      <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', marginBottom: '16px' }}>
-        Tournament Schedule & Results
-      </h3>
+      <div style={{ marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', margin: 0 }}>
+          Tournament Schedule & Results
+        </h3>
+      </div>
       {Object.keys(grouped).map(num => (
         <div key={num} style={{ marginBottom: '24px' }}>
           <h4 style={{ color: '#2d3748', marginBottom: '8px' }}>Round {num}</h4>
@@ -961,6 +1036,8 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
                   backgroundColor: match.is_completed ? '#f0fff4' : '#fff'
                 }}
               >
+
+                
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '20px', alignItems: 'center' }}>
                   {/* Team 1 */}
                   <div style={{ textAlign: 'center' }}>
@@ -975,141 +1052,141 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
 
                   {/* Score Section */}
                   <div style={{ textAlign: 'center', minWidth: '200px' }}>
-                    {isEditing(match.id) ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                          <input
-                            type="number"
-                            value={editingScores[match.id]?.team1_score || ''}
-                            onChange={(e) => handleScoreChange(match.id, 'team1_score', e.target.value)}
-                            placeholder="Team 1"
-                            min="0"
-                            style={{
-                              width: '60px',
-                              padding: '4px 8px',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '4px',
-                              textAlign: 'center',
-                              fontSize: '16px'
-                            }}
-                          />
-                          <span style={{ color: '#718096', fontSize: '16px' }}>-</span>
-                          <input
-                            type="number"
-                            value={editingScores[match.id]?.team2_score || ''}
-                            onChange={(e) => handleScoreChange(match.id, 'team2_score', e.target.value)}
-                            placeholder="Team 2"
-                            min="0"
-                            style={{
-                              width: '60px',
-                              padding: '4px 8px',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '4px',
-                              textAlign: 'center',
-                              fontSize: '16px'
-                            }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                          <button
-                            onClick={() => handleSubmitResult(match)}
-                            disabled={submittingResults[match.id]}
-                            style={{
-                              padding: '4px 12px',
-                              backgroundColor: '#48bb78',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              opacity: submittingResults[match.id] ? 0.6 : 1
-                            }}
-                          >
-                            {submittingResults[match.id] ? 'Saving...' : 'Save'}
-                          </button>
-                          <button
-                            onClick={() => cancelEditing(match.id)}
-                            disabled={submittingResults[match.id]}
-                            style={{
-                              padding: '4px 12px',
-                              backgroundColor: '#f56565',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '600'
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                  {isEditing(match.id) ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          value={editingScores[match.id]?.team1_score || ''}
+                          onChange={(e) => handleScoreChange(match.id, 'team1_score', e.target.value)}
+                          placeholder="Team 1"
+                          min="0"
+                          style={{
+                            width: '60px',
+                            padding: '4px 8px',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '4px',
+                            textAlign: 'center',
+                            fontSize: '16px'
+                          }}
+                        />
+                        <span style={{ color: '#718096', fontSize: '16px' }}>-</span>
+                        <input
+                          type="number"
+                          value={editingScores[match.id]?.team2_score || ''}
+                          onChange={(e) => handleScoreChange(match.id, 'team2_score', e.target.value)}
+                          placeholder="Team 2"
+                          min="0"
+                          style={{
+                            width: '60px',
+                            padding: '4px 8px',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '4px',
+                            textAlign: 'center',
+                            fontSize: '16px'
+                          }}
+                        />
                       </div>
-                    ) : (
-                      <div>
-                        {match.is_completed ? (
-                          <div>
-                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3748' }}>
-                              {match.team1_score} - {match.team2_score}
-                            </div>
-                            <div style={{
-                              backgroundColor: '#48bb78',
-                              color: 'white',
-                              padding: '4px 12px',
-                              borderRadius: '12px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              marginTop: '8px'
-                            }}>
-                              COMPLETED
-                            </div>
-                            {canEditResults && tournament.status !== 'completed' && (
-                              <button
-                                onClick={() => startEditing(match)}
-                                style={{
-                                  padding: '4px 12px',
-                                  backgroundColor: '#4299e1',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  marginTop: '8px'
-                                }}
-                              >
-                                Edit Result
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <div>
-                            <div style={{ fontSize: '18px', color: '#718096', marginBottom: '8px' }}>
-                              vs
-                            </div>
-                            {canEditResults && tournament.status !== 'completed' && (
-                              <button
-                                onClick={() => startEditing(match)}
-                                style={{
-                                  padding: '8px 16px',
-                                  backgroundColor: '#4299e1',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                  fontWeight: '600'
-                                }}
-                              >
-                                Enter Result
-                              </button>
-                            )}
-                          </div>
-                        )}
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => handleSubmitResult(match)}
+                          disabled={submittingResults[match.id]}
+                          style={{
+                            padding: '4px 12px',
+                            backgroundColor: '#48bb78',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            opacity: submittingResults[match.id] ? 0.6 : 1
+                          }}
+                        >
+                          {submittingResults[match.id] ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => cancelEditing(match.id)}
+                          disabled={submittingResults[match.id]}
+                          style={{
+                            padding: '4px 12px',
+                            backgroundColor: '#f56565',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          Cancel
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {match.is_completed ? (
+                        <div>
+                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3748' }}>
+                            {match.team1_score} - {match.team2_score}
+                          </div>
+                          <div style={{
+                            backgroundColor: '#48bb78',
+                            color: 'white',
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            marginTop: '8px'
+                          }}>
+                            COMPLETED
+                          </div>
+                          {canEditResults && tournament.status !== 'completed' && (
+                            <button
+                              onClick={() => startEditing(match)}
+                              style={{
+                                padding: '4px 12px',
+                                backgroundColor: '#4299e1',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                marginTop: '8px'
+                              }}
+                            >
+                              Edit Result
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ fontSize: '18px', color: '#718096', marginBottom: '8px' }}>
+                            vs
+                          </div>
+                          {canEditResults && tournament.status !== 'completed' && (
+                            <button
+                              onClick={() => startEditing(match)}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#4299e1',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '600'
+                              }}
+                            >
+                              Enter Result
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                   {/* Team 2 */}
                   <div style={{ textAlign: 'center' }}>
@@ -1209,8 +1286,23 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
                 {entry.rank}
               </div>
               <div>
-                <div style={{ fontWeight: '600', color: '#2d3748', fontSize: '16px' }}>
-                  {entry.player_name}
+                <div style={{ fontWeight: '600', fontSize: '16px' }}>
+                  <Link 
+                    to={`/users/${entry.player_id}/profile`}
+                    style={{ 
+                      textDecoration: 'none', 
+                      color: '#2d3748',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.textDecoration = 'underline';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.textDecoration = 'none';
+                    }}
+                  >
+                    {entry.player_name}
+                  </Link>
                 </div>
                 <div style={{ fontSize: '14px', color: '#718096' }}>
                   {entry.email}

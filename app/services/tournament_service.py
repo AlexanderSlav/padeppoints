@@ -202,18 +202,20 @@ class TournamentService:
             
             await self.db.commit()
     
-    async def get_player_scores(self, tournament_id: str) -> Dict[str, int]:
+    async def get_player_scores(self, tournament_id: str, tournament: Tournament = None) -> Dict[str, int]:
         """
         Get current player scores for a tournament.
+        If tournament object is already available, pass it to avoid duplicate database queries.
         """
-        result = await self.db.execute(
-            select(Tournament)
-            .options(selectinload(Tournament.players))
-            .filter(Tournament.id == tournament_id)
-        )
-        tournament = result.scalar_one_or_none()
-        if not tournament:
-            raise ValueError(f"Tournament {tournament_id} not found")
+        if tournament is None:
+            result = await self.db.execute(
+                select(Tournament)
+                .options(selectinload(Tournament.players))
+                .filter(Tournament.id == tournament_id)
+            )
+            tournament = result.scalar_one_or_none()
+            if not tournament:
+                raise ValueError(f"Tournament {tournament_id} not found")
         
         # Get all completed rounds
         result = await self.db.execute(
@@ -255,7 +257,7 @@ class TournamentService:
             player_stats = format_service.calculate_player_statistics(completed_rounds)
         else:
             # Fallback to basic scores
-            player_scores = await self.get_player_scores(tournament_id)
+            player_scores = await self.get_player_scores(tournament_id, tournament)
             player_stats = {
                 pid: {
                     'total_points': score,
@@ -314,7 +316,7 @@ class TournamentService:
         if tournament.status != TournamentStatus.COMPLETED.value:
             return None
         
-        player_scores = await self.get_player_scores(tournament_id)
+        player_scores = await self.get_player_scores(tournament_id, tournament)
         format_service = self.get_format_service(tournament, list(tournament.players))
         winner_id = format_service.get_tournament_winner(player_scores)
         

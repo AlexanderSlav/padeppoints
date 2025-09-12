@@ -172,3 +172,35 @@ async def async_client(test_app):
         base_url="http://test"
     ) as client:
         yield client
+
+
+@pytest.fixture
+def americano_tournament_factory(mocker):
+    """
+    Shared factory fixture for creating Americano tournaments with mock data.
+    This replaces duplicate fixtures across test files.
+    """
+    def _create(num_players, courts=None, points_per_match=32):
+        from app.models.tournament import Tournament, TournamentSystem
+        from app.models.user import User
+        
+        tournament = mocker.Mock(spec=Tournament)
+        tournament.id = str(uuid.uuid4())
+        tournament.system = TournamentSystem.AMERICANO
+        tournament.points_per_match = points_per_match
+        tournament.courts = courts or max(1, num_players // 8)
+        tournament.max_players = num_players
+        
+        # Create mock players with consistent IDs
+        players = []
+        for i in range(num_players):
+            player = mocker.Mock(spec=User)
+            player.id = f"P{i}"  # Short, consistent IDs
+            player.full_name = f"Player {i+1}"
+            player.email = f"player{i+1}@test.com"
+            players.append(player)
+        
+        tournament.players = players
+        return tournament, players
+    
+    return _create

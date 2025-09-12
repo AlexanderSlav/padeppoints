@@ -19,7 +19,7 @@ class ELOService:
     K_FACTOR_NEW_PLAYER = 40  # Higher K for players with < 30 matches
     K_FACTOR_NORMAL = 20      # Normal K factor
     K_FACTOR_EXPERIENCED = 10  # Lower K for players with > 100 matches
-    INITIAL_RATING = 1500
+    INITIAL_RATING = 1000
     SCALING_FACTOR = 400  # Traditional ELO scaling
     
     def __init__(self, db: AsyncSession):
@@ -93,6 +93,9 @@ class ELOService:
             
         Returns:
             Dictionary of user_id -> rating_change
+        
+        TODO: Check this, is rating change only depends on total stregth of the team ?
+              It should be more personal up to player rating.
         """
         if not match.is_completed or match.team1_score is None or match.team2_score is None:
             raise ValueError("Match must be completed with scores")

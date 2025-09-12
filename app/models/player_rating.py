@@ -65,6 +65,7 @@ class RatingHistory(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     player_rating_id = Column(String, ForeignKey("player_ratings.id"), nullable=False)
     tournament_id = Column(String, ForeignKey("tournaments.id"), nullable=True)
+    # TODO: Visualize change per match in schedule tab
     match_id = Column(String, ForeignKey("rounds.id"), nullable=True)
     
     # Rating change

@@ -1,7 +1,7 @@
 """create_player_rating_tables
 
 Revision ID: 908cf7ecefe9
-Revises: 0b8e62cb2861
+Revises: f721ad6d988b
 Create Date: 2025-08-02 15:29:21.512309
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '908cf7ecefe9'
-down_revision: Union[str, None] = '0b8e62cb2861'
+down_revision: Union[str, None] = 'f721ad6d988b'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

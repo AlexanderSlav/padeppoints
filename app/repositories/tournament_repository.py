@@ -136,7 +136,9 @@ class TournamentRepository(BaseRepository[Tournament]):
         """Get tournament players with their details"""
         result = await self.db.execute(
             select(Tournament)
-            .options(selectinload(Tournament.players))
+            .options(
+                selectinload(Tournament.players).selectinload(User.rating)
+            )
             .filter(Tournament.id == tournament_id)
         )
         tournament = result.scalar_one_or_none()
@@ -148,7 +150,9 @@ class TournamentRepository(BaseRepository[Tournament]):
             {
                 "id": player.id,
                 "full_name": player.full_name,
-                "email": player.email
+                "email": player.email,
+                "picture": player.picture,
+                "rating": player.rating.current_rating if player.rating else 1000.0
             }
             for player in tournament.players
         ]

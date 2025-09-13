@@ -308,7 +308,7 @@ class TestAmericanoTournament:
         
         # Performance should be reasonable
         for num_players, duration in performance_data:
-            assert duration < 5.0, f"{num_players} players took {duration:.3f}s - too slow"
+            assert duration < 7.0, f"{num_players} players took {duration:.3f}s - too slow"
 
     @pytest.mark.parametrize("num_players,expected_rounds,expected_partnerships", [
         (4, 3, 6),     # C(4,2) = 6

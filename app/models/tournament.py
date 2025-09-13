@@ -38,6 +38,7 @@ class Tournament(Base):
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
     status = Column(String, default=TournamentStatus.PENDING.value)
     current_round = Column(Integer, default=1)
+    join_code = Column(String, unique=True, nullable=True)
     
     # Relationships
     players = relationship(

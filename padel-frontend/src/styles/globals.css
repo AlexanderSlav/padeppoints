@@ -82,7 +82,7 @@
 body {
   font-family: var(--font-family);
   color: var(--text-primary);
-  background: var(--bg-primary);
+  background: #ececef;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -126,13 +126,14 @@ body {
 }
 
 .btn-primary {
-  background: var(--primary-gradient);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-primary);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
 }
 
 .btn-secondary {
@@ -276,23 +277,27 @@ body {
 }
 
 .badge-success {
-  background: var(--success);
-  color: white;
+  background: transparent;
+  color: var(--success);
+  border: 2px solid var(--success);
 }
 
 .badge-warning {
-  background: var(--warning);
-  color: white;
+  background: transparent;
+  color: var(--warning);
+  border: 2px solid var(--warning);
 }
 
 .badge-error {
-  background: var(--error);
-  color: white;
+  background: transparent;
+  color: var(--error);
+  border: 2px solid var(--error);
 }
 
 .badge-info {
-  background: var(--info);
-  color: white;
+  background: transparent;
+  color: var(--info);
+  border: 2px solid var(--info);
 }
 
 /* Container */

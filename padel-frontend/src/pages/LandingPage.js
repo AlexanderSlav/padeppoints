@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import InfoSection from '../components/InfoSection';
 import './LandingPage.css';
 
 const LandingPage = () => {
@@ -125,6 +126,8 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+
+      <InfoSection />
 
       <section className="cta">
         <div className="cta-container">

@@ -100,7 +100,7 @@ const CreateTournamentPage = () => {
     return (
       <div className="container">
         <div className="header">
-          <h1>🎾 Tornetic</h1>
+          <h1>Tornetic</h1>
         </div>
         <div className="card">
           <div style={{ textAlign: 'center' }}>
@@ -116,10 +116,6 @@ const CreateTournamentPage = () => {
 
   return (
     <div className="container">
-      <div className="header">
-        <h1>🎾 Tornetic</h1>
-        <p>Create New Tournament</p>
-      </div>
 
       {/* User Info */}
       <div className="user-info">
@@ -288,7 +284,7 @@ const CreateTournamentPage = () => {
           <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
             <button
               type="submit"
-              className="btn"
+              className="btn btn-primary"
               disabled={loading}
               style={{ flex: 1, fontSize: '16px', padding: '16px' }}
             >

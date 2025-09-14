@@ -83,34 +83,6 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Quick Actions - Desktop Only */}
-        <div className="quick-actions hide-mobile">
-          <h2 className="section-title">Quick Actions</h2>
-          <div className="action-grid">
-            <button 
-              onClick={() => navigate('/tournaments')}
-              className="action-card"
-            >
-              <span className="action-icon">🔍</span>
-              <span className="action-text">Discover Tournaments</span>
-            </button>
-            <button 
-              onClick={() => navigate('/create-tournament')}
-              className="action-card action-primary"
-            >
-              <span className="action-icon">➕</span>
-              <span className="action-text">Create Tournament</span>
-            </button>
-            <button 
-              onClick={() => setShowAdviceModal(true)}
-              className="action-card"
-            >
-              <span className="action-icon">💡</span>
-              <span className="action-text">Get Planning Advice</span>
-            </button>
-          </div>
-        </div>
-
         {/* Tournaments Section */}
         <div className="tournaments-section">
           <div className="section-header">
@@ -214,6 +186,7 @@ const DashboardPage = () => {
           onClose={() => setShowAdviceModal(false)}
         />
       )}
+
     </div>
   );
 };

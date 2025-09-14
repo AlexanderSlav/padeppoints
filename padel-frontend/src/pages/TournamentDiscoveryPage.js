@@ -96,10 +96,10 @@ const TournamentDiscoveryPage = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return '#f6ad55';
-      case 'active': return '#68d391';
-      case 'completed': return '#9ca3af';
-      default: return '#e2e8f0';
+      case 'pending': return '#fbbf24';
+      case 'active': return '#10b981';
+      case 'completed': return '#6b7280';
+      default: return '#d1d5db';
     }
   };
 
@@ -117,20 +117,20 @@ const TournamentDiscoveryPage = () => {
         {/* Header */}
         <div style={{ 
           backgroundColor: 'white', 
-          padding: '30px', 
-          borderRadius: '12px', 
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          padding: '24px', 
+          borderRadius: '8px', 
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
           marginBottom: '24px'
         }}>
           <h1 style={{ 
-            fontSize: '32px', 
-            fontWeight: 'bold', 
-            color: '#2d3748', 
+            fontSize: '28px', 
+            fontWeight: '600', 
+            color: '#111827', 
             margin: '0 0 8px 0' 
           }}>
-            🎾 Discover Tournaments
+            Discover Tournaments
           </h1>
-          <p style={{ color: '#718096', fontSize: '16px', margin: 0 }}>
+          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
             Find and join padel tournaments near you
           </p>
         </div>
@@ -138,9 +138,9 @@ const TournamentDiscoveryPage = () => {
         {/* Filters */}
         <div style={{ 
           backgroundColor: 'white', 
-          padding: '24px', 
-          borderRadius: '12px', 
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          padding: '20px', 
+          borderRadius: '8px', 
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
           marginBottom: '24px'
         }}>
           <div style={{ 
@@ -342,14 +342,19 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
   return (
     <div style={{ 
       backgroundColor: 'white', 
-      padding: '24px', 
-      borderRadius: '12px', 
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      border: '1px solid #e2e8f0'
-    }}>
+      padding: '20px', 
+      borderRadius: '8px', 
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+      border: '1px solid #e5e7eb',
+      transition: 'box-shadow 0.2s',
+      cursor: 'pointer'
+    }}
+    onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'}
+    onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)'}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
-          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', margin: '0 0 8px 0' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: '0 0 8px 0' }}>
             <a 
               href={`/tournaments/${tournament.id}`} 
               style={{ color: '#2d3748', textDecoration: 'none' }}
@@ -359,11 +364,14 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
               {tournament.name}
             </a>
           </h3>
-          <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#718096' }}>
-            <span>📍 {tournament.location}</span>
-            <span>📅 {formatDate(tournament.start_date)}</span>
-            <span>💰 ${tournament.entry_fee}</span>
-            <span>🎾 {tournament.system}</span>
+          <div style={{ display: 'flex', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
+            <span>{tournament.location}</span>
+            <span>•</span>
+            <span>{formatDate(tournament.start_date)}</span>
+            <span>•</span>
+            <span>${tournament.entry_fee}</span>
+            <span>•</span>
+            <span>{tournament.system}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -371,21 +379,21 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
             backgroundColor: getStatusColor(tournament.status),
             color: 'white',
             padding: '4px 12px',
-            borderRadius: '16px',
-            fontSize: '12px',
-            fontWeight: '600',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: '500',
             textTransform: 'uppercase'
           }}>
             {tournament.status}
           </div>
           {isCreatedByMe && (
             <div style={{
-              backgroundColor: '#e2e8f0',
-              color: '#4a5568',
-              padding: '4px 12px',
-              borderRadius: '16px',
-              fontSize: '12px',
-              fontWeight: '600'
+              backgroundColor: '#f3f4f6',
+              color: '#6b7280',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: '500'
             }}>
               MY TOURNAMENT
             </div>
@@ -410,17 +418,26 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          <a 
+          <a
             href={`/tournaments/${tournament.id}`}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#4299e1',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               textDecoration: 'none',
               borderRadius: '6px',
               fontSize: '14px',
               fontWeight: '600',
-              display: 'inline-block'
+              display: 'inline-block',
+              transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
             }}
           >
             View Details
@@ -452,17 +469,17 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
                   disabled={loading || !joinStatus.can_join}
                   style={{
                     padding: '8px 16px',
-                    backgroundColor: joinStatus.can_join ? '#48bb78' : '#a0aec0',
+                    backgroundColor: joinStatus.can_join ? '#10b981' : '#9ca3af',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: joinStatus.can_join ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
-                    fontWeight: '600',
+                    fontWeight: '500',
                     opacity: loading ? 0.6 : 1
                   }}
                 >
-                  {loading ? 'Joining...' : joinStatus.can_join ? '⚡ Quick Join' : joinStatus.reason}
+                  {loading ? 'Joining...' : joinStatus.can_join ? 'Quick Join' : joinStatus.reason}
                 </button>
               )}
             </>

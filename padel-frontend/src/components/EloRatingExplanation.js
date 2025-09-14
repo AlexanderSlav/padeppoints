@@ -1,26 +1,8 @@
 import React, { useState } from 'react';
+import { ratingRanges } from '../config/eloRatings';
 
 const EloRatingExplanation = () => {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  const ratingRanges = [
-    { min: 1000, max: 1099, level: 'Beginner', color: '#48bb78', playtomic: '1.0', description: 'No experience, just starting to play' },
-    { min: 1100, max: 1199, level: 'Novice', color: '#68d391', playtomic: '2.0', description: 'Consistent at a low pace' },
-    { min: 1200, max: 1299, level: 'Improver', color: '#9ae6b4', playtomic: '2.5', description: 'Consistent at medium pace, shots lack direction' },
-    { min: 1300, max: 1399, level: 'Weak Intermediate', color: '#f6e05e', playtomic: '3.0', description: 'Building confidence with shorts, consistent at medium pace' },
-    { min: 1400, max: 1499, level: 'Intermediate', color: '#f6ad55', playtomic: '3.5', description: 'Has control and pace, previous racquet skills' },
-    { min: 1500, max: 1599, level: 'Strong Intermediate', color: '#ed8936', playtomic: '4.0', description: 'Experience constructing padel points, consistent player' },
-    { min: 1600, max: 1699, level: 'Weak Advanced', color: '#fc8181', playtomic: '4.5', description: 'Resourceful - executing winners, ability to force errors' },
-    { min: 1700, max: 1799, level: 'Advanced', color: '#f56565', playtomic: '5.0', description: 'Experience competing at tournament level' },
-    { min: 1800, max: 1899, level: 'Strong Advanced', color: '#e53e3e', playtomic: '5.5', description: 'Top nationally ranked player, regular tournament competitor' },
-    { min: 1900, max: 1999, level: 'Weak Expert', color: '#c53030', playtomic: '6.0', description: 'Semi-professional, World ranking outside top 250' },
-    { min: 2000, max: 9999, level: 'Expert', color: '#9b2c2c', playtomic: '6.5+', description: 'Professional player, World ranking potential' }
-  ];
-
-  const getRatingColor = (rating) => {
-    const range = ratingRanges.find(r => rating >= r.min && rating <= r.max);
-    return range ? range.color : '#718096';
-  };
 
   return (
     <div style={{
@@ -87,8 +69,8 @@ const EloRatingExplanation = () => {
             <h4 style={{ color: '#2d3748', fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>
               Rating Distribution
             </h4>
-            <div style={{ 
-              background: 'linear-gradient(90deg, #48bb78 0%, #f6e05e 35%, #ed8936 65%, #e53e3e 100%)',
+            <div style={{
+              background: 'linear-gradient(90deg, #A5D6A7 0%, #9CCC65 25%, #FFEB3B 40%, #FFC107 50%, #FF9800 65%, #F57C00 75%, #EF5350 85%, #B71C1C 100%)',
               height: '80px',
               borderRadius: '8px',
               position: 'relative',

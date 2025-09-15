@@ -1,7 +1,6 @@
 import pytest
-from app.models.tournament import TournamentStatus
+from app.models.tournament import Tournament, TournamentStatus, tournament_player
 from app.models.user import User
-from app.models.tournament import Tournament
 from app.models.round import Round
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -207,6 +206,73 @@ async def test_join_tournament(async_client, db_session: AsyncSession, test_user
 
 
 @pytest.mark.asyncio
+async def test_get_share_link(async_client, db_session: AsyncSession, test_tournament: Tournament, test_organizer: User):
+    """Share link is created only once and returned."""
+    from app.core.dependencies import get_current_user, get_tournament_as_organizer
+
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_organizer
+    async_client._transport.app.dependency_overrides[get_tournament_as_organizer] = lambda: test_tournament
+
+    response1 = await async_client.get(f"/api/v1/tournaments/{test_tournament.id}/share-link")
+    assert response1.status_code == 200
+    link1 = response1.json()["join_link"]
+
+    response2 = await async_client.get(f"/api/v1/tournaments/{test_tournament.id}/share-link")
+    assert response2.status_code == 200
+    link2 = response2.json()["join_link"]
+
+    assert link1 == link2
+
+    result = await db_session.execute(select(Tournament).filter(Tournament.id == test_tournament.id))
+    tournament = result.scalar_one()
+    assert tournament.join_code is not None
+    assert tournament.join_code in link1
+
+
+@pytest.mark.asyncio
+async def test_join_tournament_by_code(async_client, db_session: AsyncSession, test_players: list[User], test_organizer: User):
+    """A player can join a tournament using its join code."""
+    from datetime import date
+    from app.core.dependencies import get_current_user
+    from app.repositories.tournament_repository import TournamentRepository
+
+    tournament = Tournament(
+        id=str(uuid.uuid4()),
+        name="Join Code Tournament",
+        description="Tournament join via code",
+        location="Test Location",
+        start_date=date(2024, 12, 1),
+        entry_fee=50.0,
+        max_players=8,
+        system="AMERICANO",
+        points_per_match=32,
+        courts=2,
+        created_by=test_organizer.id,
+        status="pending",
+    )
+
+    db_session.add(tournament)
+    await db_session.commit()
+    await db_session.refresh(tournament)
+
+    repo = TournamentRepository(db_session)
+    join_code = await repo.get_or_create_join_code(tournament.id)
+
+    async_client._transport.app.dependency_overrides[get_current_user] = lambda: test_players[0]
+
+    response = await async_client.post(f"/api/v1/tournaments/join/{join_code}")
+    assert response.status_code == 200
+
+    result = await db_session.execute(
+        select(tournament_player).where(
+            tournament_player.c.tournament_id == tournament.id,
+            tournament_player.c.player_id == test_players[0].id,
+        )
+    )
+    assert result.first() is not None
+
+
+@pytest.mark.asyncio
 async def test_leave_tournament(async_client, db_session: AsyncSession, test_organizer: User, test_players: list[User]):
     """Test leaving a tournament."""
     # Create a tournament with the user already in it
@@ -239,7 +305,7 @@ async def test_leave_tournament(async_client, db_session: AsyncSession, test_org
     async_client._transport.app.dependency_overrides[get_tournament_for_user] = lambda: tournament
     
     response = await async_client.post(f"/api/v1/tournaments/{tournament.id}/leave")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["success"] == True

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func, outerjoin
 from sqlalchemy.orm import selectinload
 from datetime import date, datetime
+import uuid
 
 from app.repositories.base import BaseRepository
 from app.models.tournament import Tournament, TournamentSystem, TournamentStatus, tournament_player
@@ -33,7 +34,30 @@ class TournamentRepository(BaseRepository[Tournament]):
             select(Tournament).filter(Tournament.id.in_(tournament_ids))
         )
         return result.scalars().all()
-    
+
+    async def get_or_create_join_code(self, tournament_id: str) -> str:
+        """Return existing join code or create a new one for a tournament."""
+        result = await self.db.execute(
+            select(Tournament).filter(Tournament.id == tournament_id)
+        )
+        tournament = result.scalar_one_or_none()
+
+        if not tournament:
+            raise ValueError("Tournament not found")
+
+        if not tournament.join_code:
+            tournament.join_code = uuid.uuid4().hex
+            await self.db.commit()
+            await self.db.refresh(tournament)
+
+        return tournament.join_code
+
+    async def get_by_join_code(self, join_code: str) -> Optional[Tournament]:
+        result = await self.db.execute(
+            select(Tournament).filter(Tournament.join_code == join_code)
+        )
+        return result.scalar_one_or_none()
+
     async def join_tournament(self, tournament_id: str, player_id: str) -> dict:
         """
         Join a tournament with proper validation

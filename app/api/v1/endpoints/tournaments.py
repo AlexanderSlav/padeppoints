@@ -26,6 +26,7 @@ from app.services.tournament_service import TournamentService
 from app.services.americano_service import AmericanoTournamentService
 from app.db.base import get_db
 from app.core.dependencies import get_current_user, get_tournament_as_organizer, get_tournament_for_user
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -356,6 +357,39 @@ async def get_tournament(
 ):
     """Get tournament details"""
     return tournament
+
+
+@router.get("/{tournament_id}/share-link")
+async def get_tournament_share_link(
+    tournament: Tournament = Depends(get_tournament_as_organizer),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get or create a shareable link for a tournament."""
+    tournament_repo = TournamentRepository(db)
+    join_code = await tournament_repo.get_or_create_join_code(tournament.id)
+    join_link = f"{settings.FRONTEND_URL}/tournaments/{tournament.id}?join_code={join_code}"
+    return {"join_link": join_link}
+
+
+@router.post("/join/{join_code}", response_model=TournamentJoinResponse)
+async def join_tournament_by_code(
+    join_code: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Join a tournament using a shareable join code"""
+    tournament_repo = TournamentRepository(db)
+    tournament = await tournament_repo.get_by_join_code(join_code)
+
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Invalid join code")
+
+    result = await tournament_repo.join_tournament(tournament.id, current_user.id)
+
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+
+    return TournamentJoinResponse(**result)
 
 
 @router.post("/{tournament_id}/join", response_model=TournamentJoinResponse)

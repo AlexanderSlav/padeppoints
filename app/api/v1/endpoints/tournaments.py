@@ -7,9 +7,10 @@ from sqlalchemy.orm import selectinload
 from datetime import date
 import uuid
 
-from app.models.tournament import Tournament, TournamentSystem, TournamentStatus
+from app.models.tournament import Tournament, TournamentSystem, TournamentStatus, tournament_player
 from app.models.round import Round
 from app.models.user import User
+from app.models.player_rating import PlayerRating
 from app.schemas.tournament import (
     TournamentCreate, 
     TournamentResponse, 
@@ -64,6 +65,8 @@ async def list_tournaments(
     start_date_to: Optional[date] = Query(None, description="Filter tournaments starting until this date"),
     location: Optional[str] = Query(None, description="Filter by location (partial match)"),
     created_by_me: Optional[bool] = Query(False, description="Show only tournaments created by current user"),
+    min_avg_rating: Optional[float] = Query(None, ge=0, description="Minimum average player ELO rating"),
+    max_avg_rating: Optional[float] = Query(None, ge=0, description="Maximum average player ELO rating"),
     limit: int = Query(50, ge=1, le=100, description="Maximum number of tournaments to return"),
     offset: int = Query(0, ge=0, description="Number of tournaments to skip"),
     db: AsyncSession = Depends(get_db),
@@ -74,7 +77,7 @@ async def list_tournaments(
     
     # Determine created_by filter
     created_by = current_user.id if created_by_me else None
-    
+
     # Get tournaments and total count in a single efficient operation
     tournaments, total = await tournament_repo.get_tournaments_with_counts_and_total(
         format=format,
@@ -83,6 +86,8 @@ async def list_tournaments(
         start_date_to=start_date_to,
         location=location,
         created_by=created_by,
+        min_avg_rating=min_avg_rating,
+        max_avg_rating=max_avg_rating,
         limit=limit,
         offset=offset
     )
@@ -524,10 +529,28 @@ async def start_tournament(
         if current_players < 4:  # Minimum players for a tournament
             logger.warning(f"Tournament {tournament.id} has insufficient players: {current_players}")
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Cannot start tournament with {current_players} players. Minimum 4 players required."
             )
-        
+
+        # Calculate average player rating before starting
+        # Get all players with their ratings
+        players_result = await db.execute(
+            select(User, PlayerRating.current_rating)
+            .join(tournament_player, User.id == tournament_player.c.player_id)
+            .outerjoin(PlayerRating, User.id == PlayerRating.user_id)
+            .filter(tournament_player.c.tournament_id == tournament.id)
+        )
+        players_with_ratings = players_result.all()
+
+        if players_with_ratings:
+            # Calculate average rating (default to 1000 if player has no rating)
+            total_rating = sum(rating if rating else 1000.0 for _, rating in players_with_ratings)
+            average_rating = total_rating / len(players_with_ratings)
+            tournament.average_player_rating = average_rating
+            await db.commit()
+            logger.info(f"Calculated average player rating for tournament {tournament.id}: {average_rating:.2f}")
+
         # Initialize tournament service
         tournament_service = TournamentService(db)
         logger.info(f"Initializing tournament service for tournament {tournament.id}")
@@ -766,21 +789,21 @@ async def finish_tournament(
 ):
     """Finish/complete a tournament by setting status to completed."""
     logger.info(f"Finishing tournament {tournament.id}")
-    
+
     try:
         # Validate tournament state before finishing
         if tournament.status != TournamentStatus.ACTIVE.value:
             logger.warning(f"Attempt to finish tournament {tournament.id} with status {tournament.status}")
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Tournament cannot be finished. Current status: {tournament.status}. Only active tournaments can be finished."
             )
-        
+
         # Update tournament status to completed
         tournament.status = TournamentStatus.COMPLETED.value
         await db.commit()
         await db.refresh(tournament)
-        
+
         logger.info(f"Successfully finished tournament {tournament.id}")
         return tournament
         

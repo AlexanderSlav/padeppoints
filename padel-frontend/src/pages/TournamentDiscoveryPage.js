@@ -12,6 +12,8 @@ const TournamentDiscoveryPage = () => {
     status: 'active_pending',  // Default to showing only active and pending
     location: '',
     created_by_me: false,
+    min_avg_rating: '',
+    max_avg_rating: '',
     limit: 20,
     offset: 0
   });
@@ -47,6 +49,12 @@ const TournamentDiscoveryPage = () => {
       const response = await tournamentAPI.getTournaments(filters);
       setTournaments(response.tournaments || []);
       setTotal(response.total || 0);
+
+      // Debug log to check tournaments data
+      console.log('Tournaments loaded:', response.tournaments);
+      if (response.tournaments && response.tournaments.length > 0) {
+        console.log('First tournament average_player_rating:', response.tournaments[0].average_player_rating);
+      }
     } catch (err) {
       setError('Failed to load tournaments');
       console.error('Load tournaments error:', err);
@@ -69,6 +77,8 @@ const TournamentDiscoveryPage = () => {
       status: 'active_pending',  // Reset to default active & pending
       location: '',
       created_by_me: false,
+      min_avg_rating: '',
+      max_avg_rating: '',
       limit: 20,
       offset: 0
     });
@@ -216,6 +226,42 @@ const TournamentDiscoveryPage = () => {
                   fontSize: '14px'
                 }}
               />
+            </div>
+
+            {/* Average ELO Range Filter */}
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                Average ELO Range
+              </label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="number"
+                  value={filters.min_avg_rating}
+                  onChange={(e) => handleFilterChange('min_avg_rating', e.target.value)}
+                  placeholder="Min"
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+                <span style={{ color: '#6b7280' }}>-</span>
+                <input
+                  type="number"
+                  value={filters.max_avg_rating}
+                  onChange={(e) => handleFilterChange('max_avg_rating', e.target.value)}
+                  placeholder="Max"
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
             </div>
 
             {/* My Tournaments Toggle */}
@@ -376,12 +422,13 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            backgroundColor: getStatusColor(tournament.status),
-            color: 'white',
+            backgroundColor: 'transparent',
+            color: getStatusColor(tournament.status),
+            border: `2px solid ${getStatusColor(tournament.status)}`,
             padding: '4px 12px',
-            borderRadius: '6px',
+            borderRadius: '20px',
             fontSize: '11px',
-            fontWeight: '500',
+            fontWeight: '600',
             textTransform: 'uppercase'
           }}>
             {tournament.status}
@@ -415,6 +462,26 @@ const TournamentCard = ({ tournament, onJoin, onLeave, currentUserId, getStatusC
           <span style={{ color: '#4a5568' }}>
             <strong>Round:</strong> {tournament.current_round || 1}
           </span>
+          {tournament.average_player_rating && (
+            <span style={{
+              color: '#4a5568',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <strong>Avg ELO:</strong>
+              <span style={{
+                backgroundColor: '#805ad5',
+                color: 'white',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: '600'
+              }}>
+                {Math.round(tournament.average_player_rating)}
+              </span>
+            </span>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>

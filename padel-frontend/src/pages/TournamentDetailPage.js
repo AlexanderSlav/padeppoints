@@ -57,6 +57,10 @@ const TournamentDetailPage = () => {
       setPlayers(playersData.players || []);
       setAllRounds(roundsData || []);
 
+      // Debug log to check if average_player_rating is present
+      console.log('Tournament data received:', tournamentData);
+      console.log('Average player rating:', tournamentData.average_player_rating);
+
 
       // Load leaderboard if tournament has started
       if (tournamentData.status === 'active' || tournamentData.status === 'completed') {
@@ -217,8 +221,16 @@ const TournamentDetailPage = () => {
   const isCreatedByMe = tournament.created_by === user?.id;
   const isPlayerInTournament = players.some(player => player.id === user?.id);
 
+  // Debug: Check tournament state right before render
+  console.log('Rendering with tournament state:', tournament);
+  console.log('Average rating in render:', tournament?.average_player_rating);
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc', padding: '20px' }}>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f7fafc',
+      padding: '20px'
+    }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
         {/* Notification */}
@@ -254,31 +266,88 @@ const TournamentDetailPage = () => {
           </div>
         )}
         {/* Header */}
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '30px', 
-          borderRadius: '12px', 
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        <div style={{
+          backgroundColor: 'white',
+          padding: '32px',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07)',
           marginBottom: '24px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
             <div>
-              <h1 style={{ 
-                fontSize: '32px', 
-                fontWeight: 'bold', 
-                color: '#2d3748', 
-                margin: '0 0 12px 0' 
+              <h1 style={{
+                fontSize: '36px',
+                fontWeight: '800',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                margin: '0 0 16px 0',
+                letterSpacing: '-0.5px'
               }}>
                 {tournament.name}
               </h1>
-              <div style={{ display: 'flex', gap: '20px', fontSize: '16px', color: '#718096', marginBottom: '16px' }}>
-                <span>📍 {tournament.location}</span>
-                <span>📅 {formatDate(tournament.start_date)}</span>
-                <span>💰 ${tournament.entry_fee}</span>
-                <span>🎾 {tournament.system}</span>
+              <div style={{ display: 'flex', gap: '20px', fontSize: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: '#f7fafc',
+                  borderRadius: '20px',
+                  color: '#4a5568',
+                  fontWeight: '600',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  📍 {tournament.location}
+                </span>
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: '#f7fafc',
+                  borderRadius: '20px',
+                  color: '#4a5568',
+                  fontWeight: '600',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  📅 {formatDate(tournament.start_date)}
+                </span>
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: '#f7fafc',
+                  borderRadius: '20px',
+                  color: '#4a5568',
+                  fontWeight: '600',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  💰 ${tournament.entry_fee}
+                </span>
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: '#f7fafc',
+                  borderRadius: '20px',
+                  color: '#4a5568',
+                  fontWeight: '600',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  🎾 {tournament.system}
+                </span>
               </div>
               {tournament.description && (
-                <p style={{ color: '#4a5568', fontSize: '16px', margin: 0 }}>
+                <p style={{
+                  color: '#64748b',
+                  fontSize: '16px',
+                  margin: 0,
+                  lineHeight: '1.6'
+                }}>
                   {tournament.description}
                 </p>
               )}
@@ -289,20 +358,22 @@ const TournamentDetailPage = () => {
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '20px',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '600',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
               }}>
                 {tournament.status}
               </div>
               {isCreatedByMe && (
                 <div style={{
-                  backgroundColor: '#e2e8f0',
-                  color: '#4a5568',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
                   padding: '8px 16px',
                   borderRadius: '20px',
-                  fontSize: '14px',
-                  fontWeight: '600'
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  letterSpacing: '0.5px'
                 }}>
                   MY TOURNAMENT
                 </div>
@@ -311,30 +382,82 @@ const TournamentDetailPage = () => {
           </div>
 
           {/* Stats */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-            gap: '20px',
-            marginBottom: '24px'
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '24px',
+            marginTop: '32px',
+            marginBottom: '32px'
           }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3748' }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '2px solid #edf2f7'
+            }}>
+              <div style={{
+                fontSize: '32px',
+                fontWeight: '700',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
                 {players.length}/{tournament.max_players}
               </div>
-              <div style={{ fontSize: '14px', color: '#718096' }}>Players</div>
+              <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>Players</div>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3748' }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '2px solid #edf2f7'
+            }}>
+              <div style={{
+                fontSize: '32px',
+                fontWeight: '700',
+                color: '#4299e1'
+              }}>
                 {tournament.current_round || 1}
               </div>
-              <div style={{ fontSize: '14px', color: '#718096' }}>Current Round</div>
+              <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>Current Round</div>
             </div>
             {estimatedDuration && (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3748' }}>
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                border: '2px solid #edf2f7'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  color: '#48bb78'
+                }}>
                   {Math.floor(estimatedDuration.estimated_minutes / 60)}h {estimatedDuration.estimated_minutes % 60}m
                 </div>
-                <div style={{ fontSize: '14px', color: '#718096' }}>Estimated Duration</div>
+                <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>Estimated Duration</div>
+              </div>
+            )}
+            {tournament && tournament.average_player_rating && (
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                border: '2px solid #edf2f7'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  color: '#805ad5'
+                }}>
+                  {Math.round(tournament.average_player_rating)}
+                </div>
+                <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>Average ELO</div>
               </div>
             )}
           </div>
@@ -351,8 +474,17 @@ const TournamentDetailPage = () => {
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: '600'
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#38a169';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#48bb78';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 🚀 Start Tournament
@@ -369,8 +501,17 @@ const TournamentDetailPage = () => {
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: '600'
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#dd6b20';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ed8936';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 🏁 Finish Tournament
@@ -383,13 +524,22 @@ const TournamentDetailPage = () => {
                 onClick={handleJoinTournament}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: '#4299e1',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: '600'
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 ➕ Join Tournament
@@ -406,8 +556,17 @@ const TournamentDetailPage = () => {
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: '600'
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e53e3e';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f56565';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 ➖ Leave Tournament
@@ -418,15 +577,15 @@ const TournamentDetailPage = () => {
         </div>
 
         {/* Tabs */}
-        <div style={{ 
-          backgroundColor: 'white', 
-          borderRadius: '12px', 
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07)',
           overflow: 'hidden'
         }}>
-          <div style={{ 
-            display: 'flex', 
-            borderBottom: '1px solid #e2e8f0' 
+          <div style={{
+            display: 'flex',
+            borderBottom: '2px solid #edf2f7'
           }}>
             {['overview', 'players', 'schedule', 'leaderboard'].map(tab => (
               <button
@@ -434,14 +593,27 @@ const TournamentDetailPage = () => {
                 onClick={() => setActiveTab(tab)}
                 style={{
                   flex: 1,
-                  padding: '16px',
-                  backgroundColor: activeTab === tab ? '#4299e1' : 'transparent',
-                  color: activeTab === tab ? 'white' : '#4a5568',
+                  padding: '16px 20px',
+                  backgroundColor: 'transparent',
+                  color: activeTab === tab ? '#667eea' : '#718096',
                   border: 'none',
+                  borderBottom: activeTab === tab ? '2px solid #667eea' : '2px solid transparent',
+                  marginBottom: '-2px',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  textTransform: 'capitalize'
+                  fontSize: '15px',
+                  fontWeight: activeTab === tab ? '600' : '500',
+                  textTransform: 'capitalize',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== tab) {
+                    e.currentTarget.style.color = '#4a5568';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== tab) {
+                    e.currentTarget.style.color = '#718096';
+                  }
                 }}
               >
                 {tab}
@@ -449,7 +621,7 @@ const TournamentDetailPage = () => {
             ))}
           </div>
 
-          <div style={{ padding: '24px' }}>
+          <div style={{ padding: '32px' }}>
             {activeTab === 'overview' && (
               <OverviewTab tournament={tournament} />
             )}
@@ -488,26 +660,53 @@ const TournamentDetailPage = () => {
 // Tab Components
 const OverviewTab = ({ tournament }) => (
   <div>
-    <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', marginBottom: '16px' }}>
+    <h3 style={{
+      fontSize: '22px',
+      fontWeight: '600',
+      color: '#2d3748',
+      marginBottom: '24px'
+    }}>
       Tournament Overview
     </h3>
     <div style={{ display: 'grid', gap: '16px' }}>
-      <div>
-        <strong style={{ color: '#4a5568' }}>Format:</strong> {tournament.system}
-      </div>
-      <div>
-        <strong style={{ color: '#4a5568' }}>Entry Fee:</strong> ${tournament.entry_fee}
-      </div>
-      <div>
-        <strong style={{ color: '#4a5568' }}>Max Players:</strong> {tournament.max_players}
-      </div>
-      <div>
-        <strong style={{ color: '#4a5568' }}>Start Date:</strong> {new Date(tournament.start_date).toLocaleDateString()}
-      </div>
+      {[
+        { label: 'Format', value: tournament.system, icon: '🎾' },
+        { label: 'Entry Fee', value: `$${tournament.entry_fee}`, icon: '💰' },
+        { label: 'Max Players', value: tournament.max_players, icon: '👥' },
+        { label: 'Start Date', value: new Date(tournament.start_date).toLocaleDateString(), icon: '📅' }
+      ].map((item, index) => (
+        <div key={index} style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '16px 20px',
+          backgroundColor: '#f7fafc',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <span style={{ fontSize: '24px', marginRight: '16px' }}>{item.icon}</span>
+          <div>
+            <div style={{ fontSize: '13px', color: '#718096', fontWeight: '500', marginBottom: '4px' }}>
+              {item.label}
+            </div>
+            <div style={{ fontSize: '16px', color: '#2d3748', fontWeight: '600' }}>
+              {item.value}
+            </div>
+          </div>
+        </div>
+      ))}
       {tournament.description && (
-        <div>
-          <strong style={{ color: '#4a5568' }}>Description:</strong>
-          <p style={{ margin: '8px 0 0 0', color: '#718096' }}>{tournament.description}</p>
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#f7fafc',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{ fontSize: '13px', color: '#718096', fontWeight: '600', marginBottom: '8px' }}>
+            📝 Description
+          </div>
+          <p style={{ margin: 0, color: '#4a5568', lineHeight: '1.6' }}>
+            {tournament.description}
+          </p>
         </div>
       )}
     </div>
@@ -606,22 +805,39 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', margin: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h3 style={{
+          fontSize: '24px',
+          fontWeight: '800',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          margin: 0
+        }}>
           Players ({players.length}/{tournament.max_players})
         </h3>
         {isCreatedByMe && tournament.status === 'pending' && players.length < tournament.max_players && (
           <button
             onClick={() => setShowAddPlayer(!showAddPlayer)}
             style={{
-              padding: '8px 16px',
+              padding: '10px 20px',
               backgroundColor: '#48bb78',
               color: 'white',
               border: 'none',
-              borderRadius: '6px',
+              borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '600'
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#38a169';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#48bb78';
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
             {showAddPlayer ? 'Cancel' : '+ Add Player'}
@@ -772,27 +988,38 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
       ) : (
         <div style={{ display: 'grid', gap: '12px' }}>
           {players.map((player, index) => (
-            <div 
-              key={player.id} 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                padding: '12px',
+            <div
+              key={player.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '16px 20px',
                 backgroundColor: '#f7fafc',
-                borderRadius: '8px'
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#edf2f7';
+                e.currentTarget.style.transform = 'translateX(2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f7fafc';
+                e.currentTarget.style.transform = 'translateX(0)';
               }}
             >
               <div style={{
                 width: '40px',
                 height: '40px',
                 borderRadius: '50%',
-                backgroundColor: '#4299e1',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontWeight: 'bold'
+                fontWeight: '600',
+                fontSize: '16px'
               }}>
                 {index + 1}
               </div>
@@ -845,7 +1072,7 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
                   <span style={{
                     backgroundColor: '#805ad5',
                     color: 'white',
-                    padding: '2px 8px',
+                    padding: '3px 8px',
                     borderRadius: '12px',
                     fontSize: '12px',
                     fontWeight: '600'
@@ -861,15 +1088,18 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
                 <button
                   onClick={() => handleRemovePlayer(player.id)}
                   style={{
-                    padding: '4px 8px',
+                    padding: '6px 12px',
                     backgroundColor: '#f56565',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                     cursor: 'pointer',
                     fontSize: '12px',
-                    fontWeight: '600'
+                    fontWeight: '600',
+                    transition: 'all 0.2s'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e53e3e'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f56565'}
                 >
                   Remove
                 </button>
@@ -1017,23 +1247,64 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
 
   return (
     <div>
-      <div style={{ marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', margin: 0 }}>
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{
+          fontSize: '24px',
+          fontWeight: '800',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          margin: 0
+        }}>
           Tournament Schedule & Results
         </h3>
       </div>
       {Object.keys(grouped).map(num => (
-        <div key={num} style={{ marginBottom: '24px' }}>
-          <h4 style={{ color: '#2d3748', marginBottom: '8px' }}>Round {num}</h4>
+        <div key={num} style={{ marginBottom: '32px' }}>
+          <h4 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#2d3748',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              backgroundColor: '#667eea',
+              borderRadius: '50%',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}>
+              {num}
+            </span>
+            Round {num}
+          </h4>
           <div style={{ display: 'grid', gap: '12px' }}>
             {grouped[num].map(match => (
-              <div 
-                key={match.id} 
-                style={{ 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: '8px', 
-                  padding: '16px',
-                  backgroundColor: match.is_completed ? '#f0fff4' : '#fff'
+              <div
+                key={match.id}
+                style={{
+                  backgroundColor: match.is_completed ? '#f0fff4' : 'white',
+                  border: match.is_completed ? '1px solid #9ae6b4' : '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.07)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
 
@@ -1210,7 +1481,15 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
 
 const LeaderboardTab = ({ leaderboard, tournament }) => (
   <div>
-    <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2d3748', marginBottom: '16px' }}>
+    <h3 style={{
+      fontSize: '24px',
+      fontWeight: '800',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      backgroundClip: 'text',
+      marginBottom: '24px'
+    }}>
       Tournament Leaderboard
     </h3>
     {!leaderboard || leaderboard.entries.length === 0 ? (
@@ -1224,14 +1503,23 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
             backgroundColor: '#fef5e7',
             border: '2px solid #f6ad55',
             borderRadius: '12px',
-            padding: '20px',
+            padding: '24px',
             marginBottom: '24px',
             textAlign: 'center'
           }}>
-            <h4 style={{ fontSize: '18px', fontWeight: 'bold', color: '#2d3748', margin: '0 0 8px 0' }}>
+            <h4 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#2d3748',
+              margin: '0 0 12px 0'
+            }}>
               🏆 Tournament Winner
             </h4>
-            <div style={{ fontSize: '16px', color: '#4a5568' }}>
+            <div style={{
+              fontSize: '18px',
+              color: '#744210',
+              fontWeight: '600'
+            }}>
               {leaderboard.winner.player_name} - {leaderboard.winner.score} points
             </div>
           </div>
@@ -1243,12 +1531,15 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
             display: 'grid',
             gridTemplateColumns: '60px 1fr 80px 100px 120px',
             gap: '16px',
-            padding: '12px 16px',
-            backgroundColor: '#e2e8f0',
+            padding: '12px 20px',
+            backgroundColor: '#f7fafc',
             borderRadius: '8px',
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: '600',
-            color: '#4a5568'
+            color: '#718096',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '16px'
           }}>
             <div>Rank</div>
             <div>Player</div>
@@ -1258,29 +1549,38 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
           </div>
           
           {leaderboard.entries.map((entry, index) => (
-            <div 
+            <div
               key={entry.player_id}
               style={{
                 display: 'grid',
                 gridTemplateColumns: '60px 1fr 80px 100px 120px',
                 gap: '16px',
                 alignItems: 'center',
-                padding: '16px',
-                backgroundColor: index === 0 ? '#fef5e7' : '#f7fafc',
-                borderRadius: '8px',
-                border: index === 0 ? '2px solid #f6ad55' : '1px solid #e2e8f0'
+                padding: '16px 20px',
+                backgroundColor: index === 0 ? '#fef5e7' : 'white',
+                borderRadius: '10px',
+                border: index === 0 ? '2px solid #f6ad55' : '1px solid #e2e8f0',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateX(2px)';
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <div style={{
                 width: '40px',
                 height: '40px',
                 borderRadius: '50%',
-                backgroundColor: index === 0 ? '#f6ad55' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#4299e1',
+                backgroundColor: index === 0 ? '#f6ad55' : index === 1 ? '#cbd5e0' : index === 2 ? '#cd7f32' : '#667eea',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontWeight: 'bold',
+                fontWeight: '600',
                 fontSize: '16px'
               }}>
                 {entry.rank}
@@ -1308,26 +1608,31 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
                   {entry.email}
                 </div>
               </div>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
+              <div style={{
+                fontSize: '18px',
+                fontWeight: '600',
                 color: '#2d3748',
                 textAlign: 'center'
               }}>
                 {entry.score}
               </div>
-              <div style={{ 
-                fontSize: '16px', 
-                fontWeight: '600',
-                color: entry.points_difference >= 0 ? '#48bb78' : '#f56565',
-                textAlign: 'center'
+              <div style={{
+                fontSize: '16px',
+                fontWeight: '700',
+                color: entry.points_difference >= 0 ? '#10b981' : '#ef4444',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px'
               }}>
-                {entry.points_difference >= 0 ? '+' : ''}{entry.points_difference || 0}
+                {entry.points_difference >= 0 ? '↑' : '↓'}
+                {Math.abs(entry.points_difference || 0)}
               </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#4a5568',
-                textAlign: 'center'
+              <div style={{
+                fontSize: '14px',
+                textAlign: 'center',
+                color: '#4a5568'
               }}>
                 <span style={{ color: '#48bb78', fontWeight: '600' }}>{entry.wins || 0}</span>-
                 <span style={{ color: '#f56565', fontWeight: '600' }}>{entry.losses || 0}</span>-

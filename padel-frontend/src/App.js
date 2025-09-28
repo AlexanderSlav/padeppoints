@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage';
 import TournamentDiscoveryPage from './pages/TournamentDiscoveryPage';
 import TournamentDetailPage from './pages/TournamentDetailPage';
 import UserProfilePage from './pages/UserProfilePage';
+import SettingsPage from './pages/SettingsPage';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -117,15 +118,24 @@ const AppRoutes = () => {
         } 
       />
 
-      <Route 
-        path="/users/:userId/profile" 
+      <Route
+        path="/users/:userId/profile"
         element={
           <ProtectedRoute>
             <UserProfilePage />
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+
       {/* 404 Not Found */}
       <Route 
         path="*" 

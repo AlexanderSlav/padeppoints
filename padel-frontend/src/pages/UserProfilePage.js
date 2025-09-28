@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { userAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { getRatingColor, getTextColorForRating } from '../config/eloRatings';
+import { getRatingColor, getTextColorForRating, getRatingLevel } from '../config/eloRatings';
 import EloInfoPopup from '../components/EloInfoPopup';
 
 const UserProfilePage = () => {
@@ -138,43 +138,23 @@ const UserProfilePage = () => {
               <h1 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: '600', color: '#111827' }}>
                 {user.full_name || 'Unknown User'}
               </h1>
-              <div style={{ color: '#6b7280', marginBottom: '12px', fontSize: '14px' }}>
-                {user.email || 'No email'}
-              </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{
-                  backgroundColor: skillLevelColor,
-                  color: skillLevelTextColor,
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
-                  {elo_rating.skill_level}
-                </span>
-                <span style={{
-                  backgroundColor: '#f0f4f8',
-                  color: '#374151',
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
-                  {tournament_stats.average_points_percentage.toFixed(1)}% Avg Points
-                </span>
-                {statistics.member_since && (
-                  <span style={{ color: '#718096', fontSize: '14px' }}>
-                    Member since {formatDate(statistics.member_since)}
-                  </span>
-                )}
-              </div>
+              {isOwnProfile && (
+                <div style={{ color: '#6b7280', marginBottom: '12px', fontSize: '14px' }}>
+                  {user.email || 'No email'}
+                </div>
+              )}
+              {statistics.member_since && (
+                <div style={{ color: '#718096', fontSize: '14px' }}>
+                  Member since {formatDate(statistics.member_since)}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Edit Profile Button */}
           {isOwnProfile && (
             <button
-              onClick={() => navigate('/profile/edit')}
+              onClick={() => navigate('/settings')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -233,10 +213,10 @@ const UserProfilePage = () => {
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '32px', fontWeight: '600', color: '#111827' }}>
-            {elo_rating.current_rating.toFixed(0)}
+            {tournament_stats.average_points_percentage.toFixed(1)}%
           </div>
           <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px', fontWeight: '500' }}>
-            ELO Rating
+            Avg Points
           </div>
         </div>
         <div style={{ textAlign: 'center' }}>
@@ -436,6 +416,7 @@ const UserProfilePage = () => {
                 <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ padding: '12px', textAlign: 'left', color: '#718096', fontSize: '14px', fontWeight: '600' }}>Tournament</th>
                   <th style={{ padding: '12px', textAlign: 'left', color: '#718096', fontSize: '14px', fontWeight: '600' }}>Location</th>
+                  <th style={{ padding: '12px', textAlign: 'center', color: '#718096', fontSize: '14px', fontWeight: '600' }}>Avg Level</th>
                   <th style={{ padding: '12px', textAlign: 'center', color: '#718096', fontSize: '14px', fontWeight: '600' }}>Place</th>
                 </tr>
               </thead>
@@ -461,6 +442,37 @@ const UserProfilePage = () => {
                       </td>
                       <td style={{ padding: '12px', color: '#4a5568', fontSize: '14px' }}>
                         {tournament.location}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        {tournament.average_elo ? (
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}>
+                            <span style={{
+                              backgroundColor: getRatingColor(tournament.average_elo),
+                              color: getTextColorForRating(tournament.average_elo),
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: '600'
+                            }}>
+                              {getRatingLevel(tournament.average_elo)}
+                            </span>
+                            <span style={{
+                              fontSize: '11px',
+                              color: '#718096'
+                            }}>
+                              {Math.round(tournament.average_elo)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#cbd5e0', fontSize: '14px' }}>
+                            -
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         {tournament.status === 'completed' && userPlacement ? (

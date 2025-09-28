@@ -285,20 +285,64 @@ async def get_user_profile(
         member_since=user.created_at if hasattr(user, 'created_at') else None
     )
     
-    # Build recent tournaments with user placement
+    # Build recent tournaments with user placement and average ELO
     recent_tournaments_list = []
     for t in joined_tournaments[:5]:
         tournament_dict = TournamentResponse.model_validate(t).model_dump()
-        
+
+        # Use the average_player_rating field that's already calculated and stored
+        # when the tournament is started (for active and completed tournaments)
+        if hasattr(t, 'average_player_rating') and t.average_player_rating is not None:
+            tournament_dict["average_elo"] = t.average_player_rating
+        else:
+            # Fallback: calculate for pending tournaments or if field is missing
+            # Get all player IDs from the tournament
+            unique_player_ids = set()
+
+            # Get all rounds for this tournament to find all players
+            rounds_query = select(Round).where(Round.tournament_id == t.id)
+            rounds_result = await db.execute(rounds_query)
+            rounds = rounds_result.scalars().all()
+
+            # Collect all unique player IDs
+            for match_round in rounds:
+                if match_round.team1_player1_id:
+                    unique_player_ids.add(match_round.team1_player1_id)
+                if match_round.team1_player2_id:
+                    unique_player_ids.add(match_round.team1_player2_id)
+                if match_round.team2_player1_id:
+                    unique_player_ids.add(match_round.team2_player1_id)
+                if match_round.team2_player2_id:
+                    unique_player_ids.add(match_round.team2_player2_id)
+
+            # Calculate average ELO for pending tournaments
+            if unique_player_ids:
+                # For pending tournaments, use current ratings
+                ratings_query = select(PlayerRating).where(PlayerRating.user_id.in_(unique_player_ids))
+                ratings_result = await db.execute(ratings_query)
+                player_ratings = ratings_result.scalars().all()
+
+                if player_ratings:
+                    avg_elo = sum(pr.current_rating for pr in player_ratings) / len(unique_player_ids)
+                    # Account for players without ratings (use default 1000)
+                    unrated_count = len(unique_player_ids) - len(player_ratings)
+                    if unrated_count > 0:
+                        total_elo = sum(pr.current_rating for pr in player_ratings) + (1000 * unrated_count)
+                        avg_elo = total_elo / len(unique_player_ids)
+                    tournament_dict["average_elo"] = avg_elo
+                else:
+                    # All players are unrated
+                    tournament_dict["average_elo"] = 1000
+            else:
+                # No players found in tournament
+                tournament_dict["average_elo"] = None
+
         # Get actual user placement from tournament results
         if t.status == "completed":
             # Calculate all players' total scores from rounds
             player_scores = {}
-            
-            # Get all rounds for this tournament
-            rounds_query = select(Round).where(Round.tournament_id == t.id)
-            rounds_result = await db.execute(rounds_query)
-            rounds = rounds_result.scalars().all()
+
+            # Reuse the rounds we already fetched above for average ELO calculation
             
             # Calculate total scores for each player
             for match_round in rounds:

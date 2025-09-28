@@ -203,6 +203,8 @@ class TournamentRepository(BaseRepository[Tournament]):
         start_date_to: Optional[date] = None,
         location: Optional[str] = None,
         created_by: Optional[str] = None,
+        min_avg_rating: Optional[float] = None,
+        max_avg_rating: Optional[float] = None,
         limit: int = 100,
         offset: int = 0
     ) -> List[Tournament]:
@@ -214,6 +216,8 @@ class TournamentRepository(BaseRepository[Tournament]):
             start_date_to=start_date_to,
             location=location,
             created_by=created_by,
+            min_avg_rating=min_avg_rating,
+            max_avg_rating=max_avg_rating,
             limit=limit,
             offset=offset
         )
@@ -386,6 +390,8 @@ class TournamentRepository(BaseRepository[Tournament]):
         start_date_to: Optional[date] = None,
         location: Optional[str] = None,
         created_by: Optional[str] = None,
+        min_avg_rating: Optional[float] = None,
+        max_avg_rating: Optional[float] = None,
         limit: int = 100,
         offset: int = 0
     ) -> tuple[List[Tournament], int]:
@@ -432,6 +438,12 @@ class TournamentRepository(BaseRepository[Tournament]):
             filters.append(Tournament.location.ilike(f"%{location}%"))
         if created_by:
             filters.append(Tournament.created_by == created_by)
+        if min_avg_rating is not None:
+            # Only filter completed tournaments that have average_player_rating calculated
+            filters.append(Tournament.average_player_rating >= min_avg_rating)
+        if max_avg_rating is not None:
+            # Only filter completed tournaments that have average_player_rating calculated
+            filters.append(Tournament.average_player_rating <= max_avg_rating)
         
         if filters:
             base_query = base_query.filter(and_(*filters))

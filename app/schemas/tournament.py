@@ -65,8 +65,8 @@ class TournamentResponse(TournamentBase):
     status: str
     current_round: int
     current_players: Optional[int] = 0
-    user_placement: Optional[int] = None  # User's final position in tournament
-    average_player_rating: Optional[float] = None  # Average ELO of players (calculated on completion)
+    user_placement: Optional[int] = None
+    average_player_rating: Optional[float] = None
 
     model_config = {"from_attributes": True}
 

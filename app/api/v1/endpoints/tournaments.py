@@ -1,32 +1,43 @@
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends, Query
-from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from datetime import date
+from typing import List, Optional
 import uuid
 
-from app.models.tournament import Tournament, TournamentSystem, TournamentStatus, tournament_player
-from app.models.round import Round
-from app.models.user import User
-from app.models.player_rating import PlayerRating
-from app.schemas.tournament import (
-    TournamentCreate, 
-    TournamentResponse, 
-    TournamentUpdate, 
-    TournamentListResponse,
-    TournamentJoinResponse,
-    TournamentPlayerResponse,
-    TournamentPlayersResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
+from loguru import logger
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.core.dependencies import (
+    get_current_user,
+    get_tournament_as_organizer,
+    get_tournament_for_user,
 )
-from app.schemas.round import MatchResultUpdate, RoundResponse
-from app.repositories.tournament_repository import TournamentRepository
-from app.repositories.round_repository import RoundRepository
-from app.services.tournament_service import TournamentService
-from app.services.americano_service import AmericanoTournamentService
 from app.db.base import get_db
-from app.core.dependencies import get_current_user, get_tournament_as_organizer, get_tournament_for_user
+from app.models.player_rating import PlayerRating
+from app.models.round import Round
+from app.models.tournament import (
+    Tournament,
+    TournamentStatus,
+    TournamentSystem,
+    tournament_player,
+)
+from app.models.user import User
+from app.repositories.round_repository import RoundRepository
+from app.repositories.tournament_repository import TournamentRepository
+from app.schemas.round import MatchResultUpdate, RoundResponse
+from app.schemas.tournament import (
+    TournamentCreate,
+    TournamentJoinResponse,
+    TournamentListResponse,
+    TournamentPlayerResponse,
+    TournamentPlayersResponse,
+    TournamentResponse,
+    TournamentUpdate,
+)
+from app.services.americano_service import AmericanoTournamentService
+from app.services.tournament_result_service import TournamentResultService
+from app.services.tournament_service import TournamentService
 
 router = APIRouter()
 
@@ -803,6 +814,15 @@ async def finish_tournament(
         tournament.status = TournamentStatus.COMPLETED.value
         await db.commit()
         await db.refresh(tournament)
+
+        # Store final tournament results
+        try:
+            result_service = TournamentResultService(db)
+            await result_service.calculate_and_store_final_results(tournament.id)
+            logger.info(f"Successfully stored final results for tournament {tournament.id}")
+        except Exception as result_error:
+            # Log error but don't fail the tournament completion
+            logger.error(f"Failed to store tournament results for {tournament.id}: {str(result_error)}")
 
         logger.info(f"Successfully finished tournament {tournament.id}")
         return tournament

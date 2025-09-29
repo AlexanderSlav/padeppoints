@@ -184,46 +184,89 @@ const UserProfilePage = () => {
         </div>
       </div>
 
-      {/* Key Stats Row */}
+      {/* Key Stats Row - Tournament Info Page Style */}
       <div style={{
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '24px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gap: '24px',
+        marginBottom: '24px'
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600', color: '#111827' }}>
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          border: '2px solid #edf2f7',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
             {tournament_stats.total_played}
           </div>
-          <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px', fontWeight: '500' }}>
+          <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>
             Tournaments
           </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600', color: '#111827' }}>
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          border: '2px solid #edf2f7',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            color: '#4299e1'
+          }}>
             {tournament_stats.tournaments_won}
           </div>
-          <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px', fontWeight: '500' }}>
+          <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>
             Wins
           </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600', color: '#111827' }}>
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          border: '2px solid #edf2f7',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            color: '#48bb78'
+          }}>
             {tournament_stats.average_points_percentage.toFixed(1)}%
           </div>
-          <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px', fontWeight: '500' }}>
+          <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>
             Avg Points
           </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600', color: '#111827' }}>
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          border: '2px solid #edf2f7',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            color: '#805ad5'
+          }}>
             {tournament_stats.podium_finishes}
           </div>
-          <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px', fontWeight: '500' }}>
+          <div style={{ fontSize: '14px', color: '#718096', fontWeight: '600', marginTop: '4px' }}>
             Podium Finishes
           </div>
         </div>
@@ -444,7 +487,7 @@ const UserProfilePage = () => {
                         {tournament.location}
                       </td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
-                        {tournament.average_elo ? (
+                        {tournament.average_player_rating ? (
                           <div style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -452,20 +495,20 @@ const UserProfilePage = () => {
                             gap: '2px'
                           }}>
                             <span style={{
-                              backgroundColor: getRatingColor(tournament.average_elo),
-                              color: getTextColorForRating(tournament.average_elo),
+                              backgroundColor: getRatingColor(tournament.average_player_rating),
+                              color: getTextColorForRating(tournament.average_player_rating),
                               padding: '2px 8px',
                               borderRadius: '12px',
                               fontSize: '11px',
                               fontWeight: '600'
                             }}>
-                              {getRatingLevel(tournament.average_elo)}
+                              {getRatingLevel(tournament.average_player_rating)}
                             </span>
                             <span style={{
                               fontSize: '11px',
                               color: '#718096'
                             }}>
-                              {Math.round(tournament.average_elo)}
+                              {Math.round(tournament.average_player_rating)}
                             </span>
                           </div>
                         ) : (

@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 import uuid
 
-from app.core.auth import fastapi_users
 from app.schemas.user import (
     UserRead, UserUpdate, UserCreate, PlayerSearchResult, UserSearchResponse, 
     GuestUserCreate, UserProfileResponse, UserProfileInfo, UserProfileStatistics,
@@ -18,9 +17,8 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.tournament_repository import TournamentRepository
 from app.models.user import User
 from app.models.player_rating import PlayerRating, RatingHistory
-from app.models.round import Round
+from app.models.tournament_result import TournamentResult
 from sqlalchemy import select, desc
-from sqlalchemy.orm import selectinload
 
 
 def get_skill_level_from_rating(rating: float) -> tuple[str, float]:
@@ -127,6 +125,117 @@ async def get_user_by_id(
     
     return user
 
+async def _get_user_rating_history(db: AsyncSession, player_rating: PlayerRating, tournament_repo: TournamentRepository) -> List[EloRatingPoint]:
+    """Get user's ELO rating history from tournaments."""
+    rating_history = []
+    if not player_rating:
+        return rating_history
+    
+    history_query = (
+        select(RatingHistory)
+        .where(RatingHistory.player_rating_id == player_rating.id)
+        .order_by(desc(RatingHistory.timestamp))
+    )
+    history_result = await db.execute(history_query)
+    all_entries = history_result.scalars().all()
+    
+    # TODO: ugly, think about it how to improve, maybe we need to store final rating for each tournament in the database
+    # Group by tournament and take only the last rating for each tournament
+    tournament_final_ratings = {}
+    for entry in all_entries:
+        if entry.tournament_id:
+            if entry.tournament_id not in tournament_final_ratings:
+                tournament_final_ratings[entry.tournament_id] = entry
+            elif entry.timestamp > tournament_final_ratings[entry.tournament_id].timestamp:
+                tournament_final_ratings[entry.tournament_id] = entry
+    
+    # Sort by timestamp and take last 10 tournaments
+    sorted_entries = sorted(tournament_final_ratings.values(), key=lambda x: x.timestamp)[-10:]
+    
+    # Fetch tournament names
+    tournament_ids = [e.tournament_id for e in sorted_entries if e.tournament_id]
+    tournaments_dict = {}
+    if tournament_ids:
+        tournaments = await tournament_repo.get_by_ids(tournament_ids)
+        tournaments_dict = {t.id: t.name for t in tournaments}
+    
+    # Convert to EloRatingPoint objects
+    for entry in sorted_entries:
+        rating_history.append(EloRatingPoint(
+            tournament_id=entry.tournament_id,
+            rating=round(entry.new_rating, 2),
+            timestamp=entry.timestamp,
+            tournament_name=tournaments_dict.get(entry.tournament_id, "Unknown")
+        ))
+    
+    return rating_history
+
+
+async def _get_user_tournament_stats_from_results(db: AsyncSession, user_id: str, completed_tournaments: List) -> tuple[int, int]:
+    """Get tournament wins and podium finishes from stored tournament results only."""
+    tournaments_won = 0
+    podium_finishes = 0
+    
+    if not completed_tournaments:
+        return tournaments_won, podium_finishes
+    
+    tournament_ids = [t.id for t in completed_tournaments]
+    
+    # Get results from tournament_results table only
+    results_query = (
+        select(TournamentResult)
+        .where(TournamentResult.player_id == user_id)
+        .where(TournamentResult.tournament_id.in_(tournament_ids))
+    )
+    results_result = await db.execute(results_query)
+    stored_results = results_result.scalars().all()
+    
+    # Use only stored results
+    for result in stored_results:
+        if result.final_position == 1:
+            tournaments_won += 1
+            podium_finishes += 1
+        elif result.final_position <= 3:
+            podium_finishes += 1
+    
+    return tournaments_won, podium_finishes
+
+
+
+
+async def _get_tournament_user_placement(db: AsyncSession, tournament, user_id: str) -> Optional[int]:
+    """Get user's placement in a completed tournament from stored results only."""
+    if tournament.status != "completed":
+        return None
+    
+    # Get from stored results only
+    result_query = (
+        select(TournamentResult)
+        .where(TournamentResult.tournament_id == tournament.id)
+        .where(TournamentResult.player_id == user_id)
+    )
+    result_result = await db.execute(result_query)
+    stored_result = result_result.scalar_one_or_none()
+    
+    return stored_result.final_position if stored_result else None
+
+
+async def _build_tournament_dict_with_elo_and_placement(db: AsyncSession, tournament, user_id: str) -> dict:
+    """Build tournament dictionary with stored average ELO and user placement."""
+    tournament_dict = TournamentResponse.model_validate(tournament).model_dump()
+    
+    # Use stored average_player_rating directly from database
+    tournament_dict["average_elo"] = tournament.average_player_rating
+    
+    # Get user placement for completed tournaments from stored results only
+    if tournament.status == "completed":
+        placement = await _get_tournament_user_placement(db, tournament, user_id)
+        if placement:
+            tournament_dict["user_placement"] = placement
+    
+    return tournament_dict
+
+
 @router.get("/{user_id}/profile", response_model=UserProfileResponse, summary="Get User Profile with Statistics")
 async def get_user_profile(
     user_id: str,
@@ -144,99 +253,24 @@ async def get_user_profile(
             detail="User not found"
         )
     
-    # Get user's rating info
+    # Get player rating
     rating_query = select(PlayerRating).where(PlayerRating.user_id == user_id)
     rating_result = await db.execute(rating_query)
     player_rating = rating_result.scalar_one_or_none()
     
-    # Get rating history (last 10 tournaments - only final rating per tournament)
-    rating_history = []
-    if player_rating:
-        # First get unique tournament IDs with their final ratings
-        history_query = (
-            select(RatingHistory)
-            .where(RatingHistory.player_rating_id == player_rating.id)
-            .order_by(desc(RatingHistory.timestamp))
-        )
-        history_result = await db.execute(history_query)
-        all_entries = history_result.scalars().all()
-        
-        # Group by tournament and take only the last rating for each tournament
-        tournament_final_ratings = {}
-        for entry in all_entries:
-            if entry.tournament_id:
-                # Keep only the latest entry for each tournament
-                if entry.tournament_id not in tournament_final_ratings:
-                    tournament_final_ratings[entry.tournament_id] = entry
-                elif entry.timestamp > tournament_final_ratings[entry.tournament_id].timestamp:
-                    tournament_final_ratings[entry.tournament_id] = entry
-        
-        # Sort by timestamp and take last 10 tournaments
-        sorted_entries = sorted(tournament_final_ratings.values(), key=lambda x: x.timestamp)[-10:]
-        
-        # Fetch tournament names
-        tournament_ids = [e.tournament_id for e in sorted_entries if e.tournament_id]
-        tournaments_dict = {}
-        if tournament_ids:
-            tournaments = await tournament_repo.get_by_ids(tournament_ids)
-            tournaments_dict = {t.id: t.name for t in tournaments}
-        
-        # Convert to EloRatingPoint objects (round ratings to 2 decimal places)
-        for entry in sorted_entries:
-            rating_history.append(EloRatingPoint(
-                tournament_id=entry.tournament_id,
-                rating=round(entry.new_rating, 2),
-                timestamp=entry.timestamp,
-                tournament_name=tournaments_dict.get(entry.tournament_id, "Unknown")
-            ))
+    # Get rating history
+    rating_history = await _get_user_rating_history(db, player_rating, tournament_repo)
     
-    # Get user statistics
+    # Get tournaments
     joined_tournaments = await tournament_repo.get_tournaments_joined_by_user(user_id)
     completed_tournaments = [t for t in joined_tournaments if t.status == "completed"]
     
-    # Calculate actual wins and podium finishes from tournament results
-    tournaments_won = 0
-    podium_finishes = 0
+    # Get tournament statistics from stored results only
+    tournaments_won, podium_finishes = await _get_user_tournament_stats_from_results(
+        db, user_id, completed_tournaments
+    )
     
-    for tournament in completed_tournaments:
-        # Calculate player positions for this tournament
-        player_scores = {}
-        rounds_query = select(Round).where(Round.tournament_id == tournament.id)
-        rounds_result = await db.execute(rounds_query)
-        rounds = rounds_result.scalars().all()
-        
-        # Calculate total scores for each player
-        for match_round in rounds:
-            # Team 1 scores
-            if match_round.team1_player1_id not in player_scores:
-                player_scores[match_round.team1_player1_id] = 0
-            if match_round.team1_player2_id not in player_scores:
-                player_scores[match_round.team1_player2_id] = 0
-            player_scores[match_round.team1_player1_id] += match_round.team1_score or 0
-            player_scores[match_round.team1_player2_id] += match_round.team1_score or 0
-            
-            # Team 2 scores
-            if match_round.team2_player1_id not in player_scores:
-                player_scores[match_round.team2_player1_id] = 0
-            if match_round.team2_player2_id not in player_scores:
-                player_scores[match_round.team2_player2_id] = 0
-            player_scores[match_round.team2_player1_id] += match_round.team2_score or 0
-            player_scores[match_round.team2_player2_id] += match_round.team2_score or 0
-        
-        # Sort players by score to get positions
-        sorted_players = sorted(player_scores.items(), key=lambda x: x[1], reverse=True)
-        
-        # Find user's position
-        for position, (player_id, score) in enumerate(sorted_players, 1):
-            if player_id == user_id:
-                if position == 1:
-                    tournaments_won += 1
-                    podium_finishes += 1  # 1st place is also a podium finish
-                elif position <= 3:
-                    podium_finishes += 1  # 2nd or 3rd place
-                break
-    
-    # Calculate tournament statistics
+    # Build tournament statistics
     tournament_stats = TournamentStatistics(
         total_played=len(completed_tournaments),
         tournaments_won=tournaments_won,
@@ -244,25 +278,21 @@ async def get_user_profile(
         average_points_percentage=player_rating.average_point_percentage if player_rating else 0.0
     )
     
-    # Determine skill level and Playtomic level based on rating
+    # Build ELO rating info
     current_rating = player_rating.current_rating if player_rating else 1000.0
     skill_level, playtomic_level = get_skill_level_from_rating(current_rating)
     
-    # Calculate recent change
     recent_change = 0.0
     if len(rating_history) >= 2:
-        # Difference between last two tournaments
         recent_change = rating_history[-1].rating - rating_history[-2].rating
     elif len(rating_history) == 1:
-        # Difference from initial rating (1000) for first tournament
         recent_change = rating_history[0].rating - 1000.0
     
-    # Build ELO rating info (round ratings to 2 decimal places)
     elo_info = EloRatingInfo(
         current_rating=round(current_rating, 2),
         peak_rating=round(player_rating.peak_rating if player_rating else 1000.0, 2),
         recent_change=round(recent_change, 2),
-        percentile=None,  # TODO: Calculate percentile among all players
+        percentile=None,
         skill_level=skill_level,
         playtomic_level=playtomic_level,
         rating_history=rating_history
@@ -285,96 +315,13 @@ async def get_user_profile(
         member_since=user.created_at if hasattr(user, 'created_at') else None
     )
     
-    # Build recent tournaments with user placement and average ELO
     recent_tournaments_list = []
-    for t in joined_tournaments[:5]:
-        tournament_dict = TournamentResponse.model_validate(t).model_dump()
-
-        # Use the average_player_rating field that's already calculated and stored
-        # when the tournament is started (for active and completed tournaments)
-        if hasattr(t, 'average_player_rating') and t.average_player_rating is not None:
-            tournament_dict["average_elo"] = t.average_player_rating
-        else:
-            # Fallback: calculate for pending tournaments or if field is missing
-            # Get all player IDs from the tournament
-            unique_player_ids = set()
-
-            # Get all rounds for this tournament to find all players
-            rounds_query = select(Round).where(Round.tournament_id == t.id)
-            rounds_result = await db.execute(rounds_query)
-            rounds = rounds_result.scalars().all()
-
-            # Collect all unique player IDs
-            for match_round in rounds:
-                if match_round.team1_player1_id:
-                    unique_player_ids.add(match_round.team1_player1_id)
-                if match_round.team1_player2_id:
-                    unique_player_ids.add(match_round.team1_player2_id)
-                if match_round.team2_player1_id:
-                    unique_player_ids.add(match_round.team2_player1_id)
-                if match_round.team2_player2_id:
-                    unique_player_ids.add(match_round.team2_player2_id)
-
-            # Calculate average ELO for pending tournaments
-            if unique_player_ids:
-                # For pending tournaments, use current ratings
-                ratings_query = select(PlayerRating).where(PlayerRating.user_id.in_(unique_player_ids))
-                ratings_result = await db.execute(ratings_query)
-                player_ratings = ratings_result.scalars().all()
-
-                if player_ratings:
-                    avg_elo = sum(pr.current_rating for pr in player_ratings) / len(unique_player_ids)
-                    # Account for players without ratings (use default 1000)
-                    unrated_count = len(unique_player_ids) - len(player_ratings)
-                    if unrated_count > 0:
-                        total_elo = sum(pr.current_rating for pr in player_ratings) + (1000 * unrated_count)
-                        avg_elo = total_elo / len(unique_player_ids)
-                    tournament_dict["average_elo"] = avg_elo
-                else:
-                    # All players are unrated
-                    tournament_dict["average_elo"] = 1000
-            else:
-                # No players found in tournament
-                tournament_dict["average_elo"] = None
-
-        # Get actual user placement from tournament results
-        if t.status == "completed":
-            # Calculate all players' total scores from rounds
-            player_scores = {}
-
-            # Reuse the rounds we already fetched above for average ELO calculation
-            
-            # Calculate total scores for each player
-            for match_round in rounds:
-                # Team 1 scores
-                if match_round.team1_player1_id not in player_scores:
-                    player_scores[match_round.team1_player1_id] = 0
-                if match_round.team1_player2_id not in player_scores:
-                    player_scores[match_round.team1_player2_id] = 0
-                player_scores[match_round.team1_player1_id] += match_round.team1_score or 0
-                player_scores[match_round.team1_player2_id] += match_round.team1_score or 0
-                
-                # Team 2 scores
-                if match_round.team2_player1_id not in player_scores:
-                    player_scores[match_round.team2_player1_id] = 0
-                if match_round.team2_player2_id not in player_scores:
-                    player_scores[match_round.team2_player2_id] = 0
-                player_scores[match_round.team2_player1_id] += match_round.team2_score or 0
-                player_scores[match_round.team2_player2_id] += match_round.team2_score or 0
-            
-            # Sort players by score (descending) to get positions
-            sorted_players = sorted(player_scores.items(), key=lambda x: x[1], reverse=True)
-            
-            # Find user's position (1-indexed)
-            for position, (player_id, score) in enumerate(sorted_players, 1):
-                if player_id == user_id:
-                    tournament_dict["user_placement"] = position
-                    break
-        
+    for tournament in joined_tournaments[:5]:
+        tournament_dict = await _build_tournament_dict_with_elo_and_placement(db, tournament, user_id)
         recent_tournaments_list.append(tournament_dict)
     
     recent_tournaments = {
-        "created": [],  # Not showing created tournaments in this view
+        "created": [],
         "joined": recent_tournaments_list
     }
     

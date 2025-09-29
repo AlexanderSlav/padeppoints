@@ -228,6 +228,7 @@ const TournamentDiscoveryPage = () => {
               />
             </div>
 
+            {/* TODO: Does it make sense to filter by average ELO? */}
             {/* Average ELO Range Filter */}
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>

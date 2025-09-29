@@ -267,8 +267,8 @@ class TournamentRepository(BaseRepository[Tournament]):
             Tournament.players
         ).filter(
             User.id == user_id
-        ).order_by(Tournament.start_date.asc())
-        
+        ).order_by(Tournament.start_date.desc())  # Changed to show newest first
+
         result = await self.db.execute(query)
         return result.scalars().all()
     

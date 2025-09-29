@@ -4,6 +4,7 @@ from app.models.user import User
 from app.models.tournament import Tournament, TournamentSystem, tournament_player
 from app.models.round import Round
 from app.models.player_rating import PlayerRating, RatingHistory
+from app.models.tournament_result import TournamentResult
 
 # Export all models for Alembic to detect
 __all__ = [
@@ -14,5 +15,6 @@ __all__ = [
     "tournament_player",
     "Round",
     "PlayerRating",
-    "RatingHistory"
+    "RatingHistory",
+    "TournamentResult"
 ]

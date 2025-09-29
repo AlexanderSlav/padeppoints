@@ -1,0 +1,17 @@
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
+  padding-bottom: 75px; /* Space for bottom nav on mobile */
+}
+
+/* Desktop: Remove bottom padding */
+@media (min-width: 769px) {
+  .app-content {
+    padding-bottom: 0;
+  }
+}

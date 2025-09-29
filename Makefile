@@ -83,7 +83,7 @@ migration:  ## Make a new migration
 
 .PHONY: drop_db_tables
 drop_db_tables:  ## Drop all tables and types in the database (for dev purposes only; be careful!)
-	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users, tournaments, rounds, tournament_player, alembic_version CASCADE;"
+	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users, tournaments, rounds, tournament_player, alembic_version, player_ratings, rating_history CASCADE;"
 	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TYPE IF EXISTS tournamentsystem CASCADE;"
 
 .PHONY: reset-db
@@ -110,6 +110,22 @@ create-superuser:  ## Create the first superuser (run interactively)
 .PHONY: create-superuser-docker
 create-superuser-docker:  ## Create the first superuser in Docker container
 	docker exec -it $(API_SERVICE_NAME) python scripts/create_first_superuser.py
+
+.PHONY: test
+test:  ## Run tests in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/ -v
+
+.PHONY: test-unit
+test-unit:  ## Run only unit tests in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/unit/ -v
+
+.PHONY: test-integration
+test-integration:  ## Run only integration tests in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/integration/ -v
+
+.PHONY: test-coverage
+test-coverage:  ## Run tests with coverage report in Docker container
+	docker exec $(API_SERVICE_NAME) python -m pytest tests/ --cov=app --cov-report=html --cov-report=term -v
 
 
 .PHONY: help

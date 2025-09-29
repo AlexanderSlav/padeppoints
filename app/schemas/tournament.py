@@ -64,7 +64,10 @@ class TournamentResponse(TournamentBase):
     created_by: str
     status: str
     current_round: int
-    
+    current_players: Optional[int] = 0
+    user_placement: Optional[int] = None
+    average_player_rating: Optional[float] = None
+
     model_config = {"from_attributes": True}
 
 class TournamentFilter(BaseModel):
@@ -86,6 +89,8 @@ class TournamentPlayerResponse(BaseModel):
     id: str
     full_name: str
     email: Optional[str] = None
+    picture: Optional[str] = None
+    rating: float = 1000.0
 
 class TournamentPlayersResponse(BaseModel):
     tournament_id: str

@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
+import '../styles/globals.css';
+import './LoginPage.css';
 
 const LoginPage = () => {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
@@ -45,68 +49,93 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="container">
-      <div className="header">
-        <h1>🎾 Tornetic</h1>
-        <p>Tournament Management Made Simple</p>
-      </div>
-
-      <div className="card">
-        <h2 style={{ marginBottom: '24px', textAlign: 'center', color: '#2d3748' }}>
-          Welcome Back!
-        </h2>
-        
-        {error && (
-          <div className="error">
-            {error}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <button
-            className="btn"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            style={{ width: '100%', fontSize: '18px', padding: '16px' }}
-          >
-            {loading ? '🔄 Loading...' : '🔐 Login with Google'}
-          </button>
-
-          <div style={{ textAlign: 'center', color: '#718096', margin: '16px 0' }}>
-            — OR —
-          </div>
-
-          <form onSubmit={handleEmailLogin} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{ padding: '8px', fontSize: '16px' }}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{ padding: '8px', fontSize: '16px' }}
-            />
-            <button
-              className="btn btn-secondary"
-              type="submit"
-              disabled={loading}
-              style={{ width: '100%', fontSize: '16px' }}
-            >
-              {loading ? '🔄 Loading...' : 'Login'}
-            </button>
-          </form>
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-brand">
+          <span className="brand-logo">🏆</span>
+          <h1 className="brand-name gradient-text">Tornetic</h1>
+          <p className="brand-tagline">Tournament Management Made Simple</p>
         </div>
 
-        <div style={{ marginTop: '32px', textAlign: 'center', color: '#718096' }}>
-          <p>New to Tornetic?</p>
-          <a href="/register">Create an account</a> or use Google
+        <div className="login-card card">
+          <div className="card-header">
+            <h2 className="card-title text-center">Welcome Back!</h2>
+            <p className="card-subtitle text-center">Sign in to continue to your dashboard</p>
+          </div>
+          
+          {error && (
+            <div className="alert alert-error">
+              <span>⚠️</span>
+              {error}
+            </div>
+          )}
+
+          <div className="login-methods">
+            <button
+              className="btn btn-primary btn-full btn-lg"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+            >
+              <span>🔐</span>
+              {loading ? 'Loading...' : 'Continue with Google'}
+            </button>
+
+            <div className="divider">
+              <span>OR</span>
+            </div>
+
+            <form onSubmit={handleEmailLogin} className="login-form">
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <button
+                className="btn btn-primary btn-full btn-lg"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+          </div>
+
+          <div className="login-footer">
+            <p className="text-center text-muted">
+              New to Tornetic?
+            </p>
+            <button 
+              onClick={() => navigate('/register')}
+              className="btn btn-ghost btn-full"
+            >
+              Create an account
+            </button>
+          </div>
+        </div>
+        
+        <div className="login-links">
+          <button onClick={() => navigate('/')} className="link-button">
+            ← Back to Home
+          </button>
         </div>
       </div>
     </div>

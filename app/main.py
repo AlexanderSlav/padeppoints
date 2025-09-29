@@ -31,6 +31,8 @@ async def lifespan(highlights_app: FastAPI):
     except Exception as exc:
         logger.error(f"Alembic migration error: {exc}.")
 
+    logger.info("Application startup complete.")
+
     yield
 
     logger.info(f"Ending {highlights_app.title}.")

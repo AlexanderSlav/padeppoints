@@ -38,7 +38,8 @@ class Tournament(Base):
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
     status = Column(String, default=TournamentStatus.PENDING.value)
     current_round = Column(Integer, default=1)
-    
+    average_player_rating = Column(Float, nullable=True, default=None)  # Calculated when tournament ends
+
     # Relationships
     players = relationship(
         "User",

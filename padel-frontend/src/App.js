@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext';
+import AppLayout from './components/AppLayout';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import CallbackPage from './pages/CallbackPage';
 import DashboardPage from './pages/DashboardPage';
@@ -9,6 +11,7 @@ import RegisterPage from './pages/RegisterPage';
 import TournamentDiscoveryPage from './pages/TournamentDiscoveryPage';
 import TournamentDetailPage from './pages/TournamentDetailPage';
 import UserProfilePage from './pages/UserProfilePage';
+import SettingsPage from './pages/SettingsPage';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -53,6 +56,9 @@ const PublicRoute = ({ children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Landing page - accessible to everyone */}
+      <Route path="/" element={<LandingPage />} />
+      
       {/* Public routes */}
       <Route
         path="/login"
@@ -112,18 +118,24 @@ const AppRoutes = () => {
         } 
       />
 
-      <Route 
-        path="/users/:userId/profile" 
+      <Route
+        path="/users/:userId/profile"
         element={
           <ProtectedRoute>
             <UserProfilePage />
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+
       {/* 404 Not Found */}
       <Route 
         path="*" 
@@ -152,9 +164,11 @@ const App = () => {
   return (
     <AuthProvider>
       <Router>
-        <div className="App">
-          <AppRoutes />
-        </div>
+        <AppLayout>
+          <div className="App">
+            <AppRoutes />
+          </div>
+        </AppLayout>
       </Router>
     </AuthProvider>
   );

@@ -10,9 +10,14 @@ class BaseTournamentFormat(ABC):
     Each format (Americano, Mexicano, etc.) should inherit from this class.
     """
     
-    def __init__(self, tournament: Tournament):
+    def __init__(self, tournament: Tournament, players: Optional[List[User]] = None):
         self.tournament = tournament
-        self.players = list(tournament.players)
+        # If players are explicitly provided, use them; otherwise, access the relationship
+        # This allows async callers to pre-load players and avoid greenlet issues
+        if players is not None:
+            self.players = players
+        else:
+            self.players = list(tournament.players)
         self.total_players = len(self.players)
     
     @abstractmethod

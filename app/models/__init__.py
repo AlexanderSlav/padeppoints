@@ -3,6 +3,8 @@ from app.models.base import Base
 from app.models.user import User
 from app.models.tournament import Tournament, TournamentSystem, tournament_player
 from app.models.round import Round
+from app.models.player_rating import PlayerRating, RatingHistory
+from app.models.tournament_result import TournamentResult
 
 # Export all models for Alembic to detect
 __all__ = [
@@ -11,5 +13,8 @@ __all__ = [
     "Tournament", 
     "TournamentSystem",
     "tournament_player",
-    "Round"
+    "Round",
+    "PlayerRating",
+    "RatingHistory",
+    "TournamentResult"
 ]

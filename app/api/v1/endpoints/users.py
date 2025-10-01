@@ -205,6 +205,7 @@ async def _get_user_tournament_stats_from_results(db: AsyncSession, user_id: str
 
 async def _get_tournament_user_placement(db: AsyncSession, tournament, user_id: str) -> Optional[int]:
     """Get user's placement in a completed tournament from stored results only."""
+    # TODO: create enum for tournament status
     if tournament.status != "completed":
         return None
     
@@ -224,10 +225,6 @@ async def _build_tournament_dict_with_elo_and_placement(db: AsyncSession, tourna
     """Build tournament dictionary with stored average ELO and user placement."""
     tournament_dict = TournamentResponse.model_validate(tournament).model_dump()
     
-    # Use stored average_player_rating directly from database
-    tournament_dict["average_elo"] = tournament.average_player_rating
-    
-    # Get user placement for completed tournaments from stored results only
     if tournament.status == "completed":
         placement = await _get_tournament_user_placement(db, tournament, user_id)
         if placement:

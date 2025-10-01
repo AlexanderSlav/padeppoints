@@ -1,0 +1,20 @@
+# Cloudflare Pages configuration file
+# This file helps Cloudflare Pages understand your build configuration
+
+# Build configuration
+build:
+  command: npm install && npm run build
+  directory: build
+
+# Environment variables (also set these in Cloudflare Pages dashboard)
+# REACT_APP_API_URL
+# REACT_APP_GOOGLE_CLIENT_ID
+
+# Build caching
+cache:
+  paths:
+    - node_modules/
+    - build/
+
+# Node.js version
+node_version: 18

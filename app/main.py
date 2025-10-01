@@ -81,4 +81,9 @@ async def root():
     """Root endpoint."""
     return {"message": "Tornetic API is running"}
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring."""
+    return {"status": "healthy", "service": "tornetic-api"}
+
 app.include_router(api_router, prefix="/api/v1") 

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      target: production
+    container_name: padel_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONPATH: .
+      # SSL mode for PostgreSQL connection
+      PGSSLMODE: require
+    env_file:
+      - .env.production
+    volumes:
+      # Only mount alembic for migrations, not the entire app
+      - ./alembic:/app/alembic
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - padel_network
+
+networks:
+  padel_network:
+    driver: bridge

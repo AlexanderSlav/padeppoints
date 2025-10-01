@@ -11,13 +11,14 @@ echo "🔄 Updating Tornetic API..."
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
+BRANCH="new_formats"
 
-APP_DIR="/opt/tornetic"
+APP_DIR="/root/padeppoints"
 
 cd $APP_DIR
 
 echo -e "${YELLOW}📥 Pulling latest changes from GitHub...${NC}"
-git pull origin main
+# git pull origin $BRANCH
 
 echo -e "${YELLOW}🔨 Rebuilding Docker containers...${NC}"
 docker compose -f docker-compose.production.yml down

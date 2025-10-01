@@ -14,9 +14,9 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Configuration
-APP_DIR="/opt/tornetic"
-REPO_URL="https://github.com/yourusername/yourrepo.git"  # UPDATE THIS
-BRANCH="main"
+APP_DIR="/root/padeppoints"
+REPO_URL="git@github.com:AlexanderSlav/padeppoints.git"  # UPDATE THIS
+BRANCH="new_formats"
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -72,16 +72,16 @@ echo -e "${YELLOW}📁 Setting up application directory...${NC}"
 mkdir -p $APP_DIR
 cd $APP_DIR
 
-# Clone or pull repository
-if [ -d ".git" ]; then
-    echo -e "${YELLOW}📥 Pulling latest changes...${NC}"
-    git fetch origin
-    git checkout $BRANCH
-    git pull origin $BRANCH
-else
-    echo -e "${YELLOW}📥 Cloning repository...${NC}"
-    git clone -b $BRANCH $REPO_URL .
-fi
+# # Clone or pull repository
+# if [ -d ".git" ]; then
+#     echo -e "${YELLOW}📥 Pulling latest changes...${NC}"
+#     git fetch origin
+#     git checkout $BRANCH
+#     git pull origin $BRANCH
+# else
+#     echo -e "${YELLOW}📥 Cloning repository...${NC}"
+#     git clone -b $BRANCH $REPO_URL .
+# fi
 
 # Check if .env.production exists
 if [ ! -f ".env.production" ]; then
@@ -117,7 +117,11 @@ else
 fi
 
 echo -e "${YELLOW}🌐 Configuring Nginx...${NC}"
-cp nginx.conf /etc/nginx/sites-available/padel-api
+# cp nginx.conf /etc/nginx/sites-available/padel-api
+# ln -sf /etc/nginx/sites-available/padel-api /etc/nginx/sites-enabled/
+# rm -f /etc/nginx/sites-enabled/default
+
+cp /root/padeppoints/nginx.conf /etc/nginx/sites-available/padel-api
 ln -sf /etc/nginx/sites-available/padel-api /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 

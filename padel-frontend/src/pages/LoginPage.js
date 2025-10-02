@@ -41,8 +41,18 @@ const LoginPage = () => {
       const userData = await authAPI.getCurrentUser();
       login(userData, access_token);
     } catch (err) {
-      setError('Email login failed');
       console.error('Email login error:', err);
+
+      // Show specific error message based on response
+      if (err.response?.data?.detail === 'LOGIN_BAD_CREDENTIALS') {
+        setError('Invalid email or password');
+      } else if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.message) {
+        setError(`Login failed: ${err.message}`);
+      } else {
+        setError('Email login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

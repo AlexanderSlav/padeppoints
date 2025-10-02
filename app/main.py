@@ -64,10 +64,15 @@ async def proxy_headers_middleware(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins in development
+    allow_origins=[
+        "https://tornetic.com",
+        "https://www.tornetic.com",
+        "https://app.tornetic.com",
+        "http://localhost:3000",  # TODO: Remove before production
+    ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["*"],
 )
 

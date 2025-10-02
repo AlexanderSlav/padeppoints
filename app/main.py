@@ -49,19 +49,6 @@ app = FastAPI(
     root_path="",
 )
 
-# Middleware to handle proxy headers (X-Forwarded-Proto, X-Forwarded-For, etc.)
-@app.middleware("http")
-async def proxy_headers_middleware(request: Request, call_next):
-    """Handle X-Forwarded-* headers from reverse proxy."""
-    # Get the forwarded protocol (http or https)
-    forwarded_proto = request.headers.get("x-forwarded-proto")
-    if forwarded_proto:
-        # Override the URL scheme if behind a proxy
-        request.scope["scheme"] = forwarded_proto
-
-    response = await call_next(request)
-    return response
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

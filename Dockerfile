@@ -32,4 +32,4 @@ RUN useradd -m -u 1000 appuser && \
 USER appuser
 
 # Use gunicorn with uvicorn workers for production
-CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120"] 
+CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120", "--forwarded-allow-ips", "*"]

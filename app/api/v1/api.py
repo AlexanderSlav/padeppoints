@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import tournaments, auth, users, players
+from app.api.v1.endpoints import tournaments, auth, users, players, admin
 
 api_router = APIRouter()
 
@@ -33,5 +33,12 @@ api_router.include_router(
     players.router,
     prefix="/players",
     tags=["players"]
+)
+
+# Admin panel endpoints (requires superuser authentication)
+api_router.include_router(
+    admin.router,
+    # admin.router already includes /admin prefix
+    # All endpoints require superuser authentication
 )
 

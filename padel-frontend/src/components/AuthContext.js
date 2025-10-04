@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import analytics from '../utils/analytics';
 
 const AuthContext = createContext();
 
@@ -53,22 +54,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = (userData, token) => {
+  const login = (userData, token, method = 'email') => {
     console.log('✅ login: Called with user:', userData);
     console.log('✅ login: Token:', token ? 'PROVIDED' : 'MISSING');
-    
+
     try {
       localStorage.setItem('access_token', token);
       localStorage.setItem('user', JSON.stringify(userData));
       console.log('✅ login: Token stored in localStorage');
-      
+
       // Verify storage worked
       const storedToken = localStorage.getItem('access_token');
       console.log('✅ login: Verification - stored token exists:', storedToken ? 'YES' : 'NO');
-      
+
       setUser(userData);
       setIsAuthenticated(true);
-      
+
+      // Track login event
+      analytics.trackLogin(method);
+
       console.log('✅ login: All steps completed successfully');
     } catch (error) {
       console.error('❌ login: Error storing token:', error);
@@ -86,6 +90,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('user');
       setUser(null);
       setIsAuthenticated(false);
+
+      // Track logout event
+      analytics.trackLogout();
+
       console.log('✅ logout: Completed');
     }
   };

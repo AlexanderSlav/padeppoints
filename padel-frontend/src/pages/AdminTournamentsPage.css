@@ -1,0 +1,132 @@
+/**
+ * Admin Tournaments Page Styles
+ */
+
+.admin-tournaments-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* Reuse styles from AdminUsersPage.css */
+.format-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.completed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.tournaments-table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.tournaments-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tournaments-table thead {
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tournaments-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.tournaments-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.tournaments-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Additional action button styles */
+.action-btn.primary {
+  background: #1e40af;
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: #1e3a8a;
+}
+
+.action-btn.info {
+  background: #0ea5e9;
+  color: white;
+}
+
+.action-btn.info:hover {
+  background: #0284c7;
+}
+
+.action-btn.secondary {
+  background: #64748b;
+  color: white;
+}
+
+.action-btn.secondary:hover {
+  background: #475569;
+}
+
+.info-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 4px;
+  color: #1e40af;
+  font-size: 0.875rem;
+}
+
+.info-box strong {
+  font-weight: 700;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-tournaments-page {
+    padding: 1rem;
+  }
+
+  .tournaments-table-container {
+    overflow-x: scroll;
+  }
+
+  .tournaments-table {
+    min-width: 800px;
+  }
+}

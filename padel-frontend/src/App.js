@@ -1,7 +1,9 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import AppLayout from './components/AppLayout';
+import CookieConsent from './components/CookieConsent';
+import { initGA, trackPageView } from './utils/analytics';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import CallbackPage from './pages/CallbackPage';
@@ -100,9 +102,23 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+// Analytics page tracking component
+const AnalyticsTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track page view on route change
+    trackPageView(location.pathname, document.title);
+  }, [location]);
+
+  return null;
+};
+
 const AppRoutes = () => {
   return (
-    <Routes>
+    <>
+      <AnalyticsTracker />
+      <Routes>
       {/* Landing page - accessible to everyone */}
       <Route path="/" element={<LandingPage />} />
       
@@ -241,16 +257,23 @@ const AppRoutes = () => {
         } 
       />
     </Routes>
+    </>
   );
 };
 
 const App = () => {
+  useEffect(() => {
+    // Initialize Google Analytics on app mount (if user has consented)
+    initGA();
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
         <AppLayout>
           <div className="App">
             <AppRoutes />
+            <CookieConsent />
           </div>
         </AppLayout>
       </Router>

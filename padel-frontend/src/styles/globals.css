@@ -404,25 +404,151 @@ body {
 
 /* Mobile-First Responsive */
 @media (max-width: 768px) {
+  :root {
+    --font-size-3xl: 1.75rem;
+    --font-size-2xl: 1.25rem;
+    --font-size-xl: 1.125rem;
+  }
+
+  body {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
   .container {
     padding: 0 var(--space-md);
   }
-  
+
   .hide-mobile {
-    display: none;
+    display: none !important;
   }
-  
+
   .grid-2,
   .grid-3,
   .grid-4 {
     grid-template-columns: 1fr;
   }
+
+  /* Stack buttons vertically on mobile */
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .btn-group .btn {
+    width: 100%;
+  }
+
+  /* Better card spacing on mobile */
+  .card {
+    padding: var(--space-lg);
+  }
+
+  /* Responsive tables */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Form improvements */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Flex utilities for mobile */
+  .flex-between {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  /* Touch-friendly sizes */
+  .btn {
+    min-height: 44px; /* iOS recommended touch target */
+    padding: var(--space-sm) var(--space-lg);
+  }
 }
 
 @media (min-width: 769px) {
   .hide-desktop {
-    display: none;
+    display: none !important;
   }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-size-3xl: 1.5rem;
+    --font-size-2xl: 1.125rem;
+  }
+
+  .container {
+    padding: 0 var(--space-sm);
+  }
+
+  .card {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+  }
+}
+
+/* Utility Classes for Mobile */
+.overflow-x-auto {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.word-break {
+  word-break: break-word;
+}
+
+.no-wrap {
+  white-space: nowrap;
+}
+
+/* Mobile-specific padding utilities */
+.p-mobile-sm {
+  @media (max-width: 768px) {
+    padding: var(--space-sm);
+  }
+}
+
+.px-mobile-sm {
+  @media (max-width: 768px) {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+}
+
+/* Responsive image */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent horizontal scroll */
+body {
+  overflow-x: hidden;
+}
+
+/* Better scrollbar for mobile */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-light);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 /* Animations */

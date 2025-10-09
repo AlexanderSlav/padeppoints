@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { tournamentAPI } from '../services/api';
 import TournamentAdviceCalculator from '../components/TournamentAdviceCalculator';
+import './CreateTournamentPage.css';
 
 const CreateTournamentPage = () => {
   const { user } = useAuth();
@@ -103,11 +104,11 @@ const CreateTournamentPage = () => {
           <h1>Tornetic</h1>
         </div>
         <div className="card">
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
-            <h2 style={{ color: '#2f855a' }}>Tournament Created!</h2>
-            <p style={{ color: '#718096' }}>Your tournament has been created successfully.</p>
-            <p style={{ color: '#718096' }}>Redirecting to dashboard...</p>
+          <div className="success-message">
+            <div className="icon">🎉</div>
+            <h2>Tournament Created!</h2>
+            <p>Your tournament has been created successfully.</p>
+            <p>Redirecting to dashboard...</p>
           </div>
         </div>
       </div>
@@ -119,45 +120,38 @@ const CreateTournamentPage = () => {
 
       {/* User Info */}
       <div className="user-info">
-        {user?.picture && (
-          <img 
-            src={user.picture} 
-            alt="Profile" 
-            className="user-avatar"
-          />
-        )}
-        <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0, color: '#2d3748' }}>
-            {user?.full_name || user?.email}
-          </h3>
-          <p style={{ margin: 0, color: '#718096', fontSize: '14px' }}>
-            Tournament Organizer
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={() => setShowAdviceModal(true)}
-            className="btn"
-            style={{ 
-              fontSize: '14px', 
-              padding: '8px 16px',
-              backgroundColor: '#805ad5',
-              border: 'none'
-            }}
-          >
-            💡 Get Advice
-          </button>
-          <a href="/dashboard" className="btn btn-secondary" style={{ fontSize: '14px', padding: '8px 16px' }}>
-            ← Back to Dashboard
-          </a>
+        <div className="user-info-header">
+          {user?.picture && (
+            <img
+              src={user.picture}
+              alt="Profile"
+              className="user-avatar"
+            />
+          )}
+          <div className="user-info-details">
+            <h3>{user?.full_name || user?.email}</h3>
+            <p>Tournament Organizer</p>
+          </div>
+          <div className="user-info-actions">
+            <button
+              onClick={() => setShowAdviceModal(true)}
+              className="btn"
+              style={{ backgroundColor: '#805ad5', border: 'none' }}
+            >
+              💡 Get Advice
+            </button>
+            <a href="/dashboard" className="btn btn-secondary">
+              ← Back to Dashboard
+            </a>
+          </div>
         </div>
       </div>
 
       {/* Tournament Form */}
       <div className="card">
-        <h2 style={{ marginBottom: '24px', color: '#2d3748' }}>
-          Tournament Details
-        </h2>
+        <div className="card-header">
+          <h2>Tournament Details</h2>
+        </div>
 
         {error && (
           <div className="error">
@@ -217,7 +211,7 @@ const CreateTournamentPage = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="form-grid-2col">
             <div className="form-group">
               <label htmlFor="entry_fee">Entry Fee ($) *</label>
               <input
@@ -233,67 +227,65 @@ const CreateTournamentPage = () => {
               />
             </div>
 
-          <div className="form-group">
-            <label htmlFor="max_players">Max Players</label>
-            <select
-              id="max_players"
-              name="max_players"
-              value={formData.max_players}
-              onChange={handleInputChange}
-            >
-              <option value="4">4 players (1 court)</option>
-              <option value="8">8 players (2 courts)</option>
-              <option value="12">12 players (3 courts)</option>
-              <option value="16">16 players (4 courts)</option>
-              <option value="20">20 players (5 courts)</option>
-              <option value="24">24 players (6 courts)</option>
-            </select>
+            <div className="form-group">
+              <label htmlFor="max_players">Max Players</label>
+              <select
+                id="max_players"
+                name="max_players"
+                value={formData.max_players}
+                onChange={handleInputChange}
+              >
+                <option value="4">4 players (1 court)</option>
+                <option value="8">8 players (2 courts)</option>
+                <option value="12">12 players (3 courts)</option>
+                <option value="16">16 players (4 courts)</option>
+                <option value="20">20 players (5 courts)</option>
+                <option value="24">24 players (6 courts)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="points_per_match">Points per Match</label>
+              <input
+                type="number"
+                id="points_per_match"
+                name="points_per_match"
+                min="1"
+                value={formData.points_per_match}
+                onChange={handleInputChange}
+                placeholder="32"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="courts">Courts</label>
+              <input
+                type="number"
+                id="courts"
+                name="courts"
+                min="1"
+                value={formData.courts}
+                onChange={handleInputChange}
+              />
+              {estimatedDuration && (
+                <div className="form-helper-text">
+                  Approx. {Math.floor(estimatedDuration.estimated_minutes/60)}h {estimatedDuration.estimated_minutes%60}m ({estimatedDuration.total_rounds} rounds)
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="points_per_match">Points per Match</label>
-            <input
-              type="number"
-              id="points_per_match"
-              name="points_per_match"
-              min="1"
-              value={formData.points_per_match}
-              onChange={handleInputChange}
-              placeholder="32"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="courts">Courts</label>
-            <input
-              type="number"
-              id="courts"
-              name="courts"
-              min="1"
-              value={formData.courts}
-              onChange={handleInputChange}
-            />
-            {estimatedDuration && (
-              <div style={{ color: '#718096', fontSize: '12px' }}>
-                Approx. {Math.floor(estimatedDuration.estimated_minutes/60)}h {estimatedDuration.estimated_minutes%60}m ({estimatedDuration.total_rounds} rounds)
-              </div>
-            )}
-          </div>
-        </div>
-
-          <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
+          <div className="form-actions">
             <button
               type="submit"
               className="btn btn-primary"
               disabled={loading}
-              style={{ flex: 1, fontSize: '16px', padding: '16px' }}
             >
               {loading ? '🔄 Creating...' : '🏆 Create Tournament'}
             </button>
             <a
               href="/dashboard"
               className="btn btn-secondary"
-              style={{ padding: '16px 24px', fontSize: '16px' }}
             >
               Cancel
             </a>

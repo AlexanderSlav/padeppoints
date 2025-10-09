@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { tournamentAPI, userAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
+import './TournamentDetailPage.css';
 
 const TournamentDetailPage = () => {
   const { id } = useParams();
@@ -182,14 +183,8 @@ const TournamentDetailPage = () => {
 
   if (loading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f7fafc', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
-      }}>
-        <div style={{ textAlign: 'center', color: '#718096' }}>
+      <div className="tournament-detail-page">
+        <div className="loading-state">
           Loading tournament details...
         </div>
       </div>
@@ -198,20 +193,8 @@ const TournamentDetailPage = () => {
 
   if (error || !tournament) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f7fafc', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
-      }}>
-        <div style={{ 
-          backgroundColor: '#fed7d7', 
-          color: '#c53030', 
-          padding: '20px', 
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
+      <div className="tournament-detail-page">
+        <div className="error-state">
           {error || 'Tournament not found'}
         </div>
       </div>
@@ -226,39 +209,17 @@ const TournamentDetailPage = () => {
   console.log('Average rating in render:', tournament?.average_player_rating);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f7fafc',
-      padding: '20px'
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        
+    <div className="tournament-detail-page">
+      <div className="tournament-detail-container">
+
         {/* Notification */}
         {notification && (
-          <div style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            backgroundColor: notification.type === 'success' ? '#48bb78' : '#f56565',
-            color: 'white',
-            padding: '16px 20px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            zIndex: 1000,
-            maxWidth: '400px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className={`notification ${notification.type}`}>
+            <div className="notification-content">
               <span>{notification.message}</span>
               <button
                 onClick={() => setNotification(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'white',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  marginLeft: '12px'
-                }}
+                className="notification-close"
               >
                 ×
               </button>

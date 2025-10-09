@@ -1,0 +1,151 @@
+/* Create Tournament Page - Mobile First Styles */
+
+.create-tournament-page {
+  padding: 20px;
+}
+
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-actions {
+  margin-top: 32px;
+  display: flex;
+  gap: 16px;
+}
+
+.form-actions .btn {
+  flex: 1;
+  font-size: 16px;
+  padding: 16px;
+}
+
+.form-actions .btn-secondary {
+  flex: 0 0 auto;
+  padding: 16px 24px;
+}
+
+.user-info-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.user-info-details {
+  flex: 1;
+  min-width: 200px;
+}
+
+.user-info-details h3 {
+  margin: 0;
+  color: #2d3748;
+}
+
+.user-info-details p {
+  margin: 0;
+  color: #718096;
+  font-size: 14px;
+}
+
+.user-info-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.user-info-actions .btn {
+  font-size: 14px;
+  padding: 8px 16px;
+  white-space: nowrap;
+}
+
+.success-message {
+  text-align: center;
+}
+
+.success-message .icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.success-message h2 {
+  color: #2f855a;
+  margin-bottom: 8px;
+}
+
+.success-message p {
+  color: #718096;
+  margin: 4px 0;
+}
+
+.form-helper-text {
+  color: #718096;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.card-header {
+  margin-bottom: 24px;
+}
+
+.card-header h2 {
+  margin-bottom: 8px;
+  color: #2d3748;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .create-tournament-page {
+    padding: 12px;
+  }
+
+  .form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    margin-top: 24px;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    flex: none;
+  }
+
+  .form-actions .btn-secondary {
+    flex: none;
+    width: 100%;
+  }
+
+  .user-info-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-info-actions {
+    width: 100%;
+  }
+
+  .user-info-actions .btn {
+    flex: 1;
+  }
+
+  .card-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-info-actions {
+    flex-direction: column;
+  }
+
+  .user-info-actions .btn {
+    width: 100%;
+  }
+}

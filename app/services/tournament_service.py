@@ -7,6 +7,10 @@ from app.models.round import Round
 from app.models.user import User
 from app.services.base_tournament_format import BaseTournamentFormat
 from app.services.americano_service import AmericanoTournamentService
+from app.services.formats.mexicano_service import MexicanoTournamentService
+from app.services.formats.team_americano_service import TeamAmericanoTournamentService
+from app.services.formats.team_mexicano_service import TeamMexicanoTournamentService
+from app.services.formats.beat_the_box_service import BeatTheBoxTournamentService
 from app.services.elo_service import ELOService
 import uuid
 
@@ -15,11 +19,14 @@ class TournamentService:
     Main tournament service that coordinates tournament operations
     and delegates format-specific logic to appropriate format services.
     """
-    
+
     # Registry of format services
     FORMAT_SERVICES: Dict[TournamentSystem, Type[BaseTournamentFormat]] = {
         TournamentSystem.AMERICANO: AmericanoTournamentService,
-        # TournamentSystem.MEXICANO: MexicanoTournamentService,  # To be implemented later
+        TournamentSystem.MEXICANO: MexicanoTournamentService,
+        TournamentSystem.TEAM_AMERICANO: TeamAmericanoTournamentService,
+        TournamentSystem.TEAM_MEXICANO: TeamMexicanoTournamentService,
+        TournamentSystem.BEAT_THE_BOX: BeatTheBoxTournamentService,
     }
     
     def __init__(self, db: AsyncSession):
@@ -66,10 +73,15 @@ class TournamentService:
         format_service = self.get_format_service(tournament, list(tournament.players))
         rounds_data = format_service.generate_rounds()
         
-        # Create Round objects in database
+        # Create Round objects in database with court assignments
         created_rounds = []
+        num_courts = tournament.courts or 1
+
         for round_number, round_matches in enumerate(rounds_data, 1):
-            for match in round_matches:
+            for match_index, match in enumerate(round_matches):
+                # Assign court number (cycle through available courts)
+                court_number = (match_index % num_courts) + 1
+
                 round_obj = Round(
                     id=str(uuid.uuid4()),
                     tournament_id=tournament.id,
@@ -77,7 +89,8 @@ class TournamentService:
                     team1_player1_id=match[0],
                     team1_player2_id=match[1],
                     team2_player1_id=match[2],
-                    team2_player2_id=match[3]
+                    team2_player2_id=match[3],
+                    court_number=court_number
                 )
                 self.db.add(round_obj)
                 created_rounds.append(round_obj)
@@ -111,15 +124,16 @@ class TournamentService:
         )
         return result.scalars().all()
     
-    async def record_match_result(self, match_id: str, team1_score: int, team2_score: int) -> Round:
+    async def record_match_result(self, match_id: str, team1_score: int, team2_score: int = None) -> Round:
         """
         Record the result of a match.
+        For formats with fixed points_per_match, team2_score can be omitted and will be auto-calculated.
         """
         result = await self.db.execute(select(Round).filter(Round.id == match_id))
         match = result.scalar_one_or_none()
         if not match:
             raise ValueError(f"Match {match_id} not found")
-        
+
         # Get tournament to validate points_per_match
         tournament_result = await self.db.execute(
             select(Tournament)
@@ -129,21 +143,30 @@ class TournamentService:
         tournament = tournament_result.scalar_one_or_none()
         if not tournament:
             raise ValueError(f"Tournament {match.tournament_id} not found")
-        
+
         # Prevent editing results if tournament is completed
         if tournament.status == TournamentStatus.COMPLETED.value:
             raise ValueError(f"Cannot edit results - tournament {tournament.id} is already completed")
-        
+
+        # Auto-calculate team2_score for formats with fixed points_per_match
+        if tournament.system in [TournamentSystem.AMERICANO, TournamentSystem.MEXICANO]:
+            if team2_score is None:
+                team2_score = tournament.points_per_match - team1_score
+
         # Validate scores
-        if team1_score < 0 or team2_score < 0:
-            raise ValueError("Scores must be non-negative")
-        
-        # Validate Americano scoring rule: sum must equal points_per_match
-        if tournament.system == TournamentSystem.AMERICANO:
+        if team1_score < 0:
+            raise ValueError("Team 1 score must be non-negative")
+        if team2_score is None:
+            raise ValueError("Team 2 score is required")
+        if team2_score < 0:
+            raise ValueError("Team 2 score must be non-negative")
+
+        # Validate scoring rule for formats with fixed points_per_match: sum must equal points_per_match
+        if tournament.system in [TournamentSystem.AMERICANO, TournamentSystem.MEXICANO]:
             total_points = team1_score + team2_score
             if total_points != tournament.points_per_match:
                 raise ValueError(
-                    f"Invalid score for Americano format. "
+                    f"Invalid score for {tournament.system.value} format. "
                     f"Team scores must sum to {tournament.points_per_match} points. "
                     f"Current sum: {total_points} ({team1_score} + {team2_score})"
                 )
@@ -173,6 +196,7 @@ class TournamentService:
     async def _check_and_advance_round(self, tournament_id: str) -> None:
         """
         Check if all matches in current round are completed and advance to next round.
+        For MEXICANO tournaments, rounds are generated manually by organizer, so skip auto-advance.
         """
         result = await self.db.execute(
             select(Tournament)
@@ -182,7 +206,11 @@ class TournamentService:
         tournament = result.scalar_one_or_none()
         if not tournament:
             return
-        
+
+        # MEXICANO tournaments don't auto-advance - organizer generates next round manually
+        if tournament.system == TournamentSystem.MEXICANO:
+            return
+
         # Check if all matches in current round are completed
         result = await self.db.execute(
             select(Round)
@@ -190,18 +218,86 @@ class TournamentService:
             .filter(Round.round_number == tournament.current_round)
         )
         current_round_matches = result.scalars().all()
-        
+
         if all(match.is_completed for match in current_round_matches):
             # All matches in current round completed
             format_service = self.get_format_service(tournament, list(tournament.players))
-            
+
             # Check if tournament is complete - advance to next round if not the last round
             if not format_service.is_tournament_complete(tournament.current_round + 1):
                 tournament.current_round += 1
             # Note: Tournament will only be finished manually by organizer via finish button
-            
+
             await self.db.commit()
-    
+
+    async def generate_next_round_for_mexicano(self, tournament_id: str) -> Tournament:
+        """
+        Generate the next round for Mexicano tournaments based on current standings.
+        Only works for Mexicano format where rounds are generated dynamically.
+        """
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.players))
+            .filter(Tournament.id == tournament_id)
+        )
+        tournament = result.scalar_one_or_none()
+        if not tournament:
+            raise ValueError(f"Tournament {tournament_id} not found")
+
+        if tournament.system != TournamentSystem.MEXICANO:
+            raise ValueError(f"Cannot generate next round - tournament is {tournament.system.value} format, not MEXICANO")
+
+        if tournament.status != TournamentStatus.ACTIVE.value:
+            raise ValueError(f"Cannot generate next round - tournament status is {tournament.status}")
+
+        # Check if current round is complete
+        current_round_result = await self.db.execute(
+            select(Round)
+            .filter(Round.tournament_id == tournament_id)
+            .filter(Round.round_number == tournament.current_round)
+        )
+        current_round_matches = current_round_result.scalars().all()
+
+        if not all(match.is_completed for match in current_round_matches):
+            raise ValueError(f"Cannot generate next round - current round {tournament.current_round} is not completed")
+
+        # Get all completed rounds for standings
+        all_rounds_result = await self.db.execute(
+            select(Round)
+            .filter(Round.tournament_id == tournament_id)
+            .filter(Round.is_completed == True)
+        )
+        completed_rounds = all_rounds_result.scalars().all()
+
+        # Get format service and generate next round
+        format_service = self.get_format_service(tournament, list(tournament.players))
+        next_round_matches = format_service.generate_next_round(completed_rounds)
+
+        # Create Round objects for next round
+        next_round_number = tournament.current_round + 1
+        for match in next_round_matches:
+            round_obj = Round(
+                id=str(uuid.uuid4()),
+                tournament_id=tournament_id,
+                round_number=next_round_number,
+                team1_player1_id=match[0],
+                team1_player2_id=match[1],
+                team2_player1_id=match[2],
+                team2_player2_id=match[3],
+                team1_score=0,
+                team2_score=0,
+                is_completed=False
+            )
+            self.db.add(round_obj)
+
+        # Update tournament current_round
+        tournament.current_round = next_round_number
+
+        await self.db.commit()
+        await self.db.refresh(tournament)
+
+        return tournament
+
     async def get_player_scores(self, tournament_id: str, tournament: Tournament = None) -> Dict[str, int]:
         """
         Get current player scores for a tournament.

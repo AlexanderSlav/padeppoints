@@ -13,6 +13,7 @@ from app.core.dependencies import (
     get_tournament_as_organizer,
     get_tournament_for_user,
 )
+from app.core.config import settings
 from app.db.base import get_db
 from app.models.player_rating import PlayerRating
 from app.models.round import Round
@@ -27,6 +28,7 @@ from app.repositories.round_repository import RoundRepository
 from app.repositories.tournament_repository import TournamentRepository
 from app.schemas.round import MatchResultUpdate, RoundResponse
 from app.schemas.tournament import (
+    OrganizerInfo,
     TournamentCreate,
     TournamentJoinResponse,
     TournamentListResponse,
@@ -40,6 +42,23 @@ from app.services.tournament_result_service import TournamentResultService
 from app.services.tournament_service import TournamentService
 
 router = APIRouter()
+
+
+def enrich_tournament_with_organizer(tournament: Tournament) -> Tournament:
+    """
+    Enrich tournament object with organizer information.
+    Sets the organizer attribute from the creator relationship.
+    """
+    if hasattr(tournament, 'creator') and tournament.creator:
+        tournament.organizer = OrganizerInfo(
+            id=tournament.creator.id,
+            full_name=tournament.creator.full_name,
+            email=tournament.creator.email,
+            picture=tournament.creator.picture
+        )
+    else:
+        tournament.organizer = None
+    return tournament
 
 
 @router.post("/", response_model=TournamentResponse)
@@ -102,8 +121,11 @@ async def list_tournaments(
         limit=limit,
         offset=offset
     )
-    
-    return TournamentListResponse(tournaments=tournaments, total=total)
+
+    # Enrich tournaments with organizer info
+    enriched_tournaments = [enrich_tournament_with_organizer(t) for t in tournaments]
+
+    return TournamentListResponse(tournaments=enriched_tournaments, total=total)
 
 @router.get("/my", response_model=List[TournamentResponse])
 async def list_my_tournaments(
@@ -112,7 +134,8 @@ async def list_my_tournaments(
 ):
     """List tournaments created by the current user"""
     tournament_repo = TournamentRepository(db)
-    return await tournament_repo.get_by_user(current_user.id)
+    tournaments = await tournament_repo.get_by_user(current_user.id)
+    return [enrich_tournament_with_organizer(t) for t in tournaments]
 
 @router.get("/joined", response_model=List[TournamentResponse])
 async def list_joined_tournaments(
@@ -371,7 +394,7 @@ async def get_tournament(
     tournament: Tournament = Depends(get_tournament_for_user)
 ):
     """Get tournament details"""
-    return tournament
+    return enrich_tournament_with_organizer(tournament)
 
 
 @router.post("/{tournament_id}/join", response_model=TournamentJoinResponse)
@@ -700,6 +723,24 @@ async def get_tournament_leaderboard(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/{tournament_id}/next-round", response_model=TournamentResponse)
+async def generate_next_round(
+    tournament: Tournament = Depends(get_tournament_as_organizer),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Generate the next round for Mexicano tournaments based on current standings.
+    Only the tournament organizer can generate next rounds.
+    Only works for MEXICANO format.
+    """
+    tournament_service = TournamentService(db)
+
+    try:
+        updated_tournament = await tournament_service.generate_next_round_for_mexicano(tournament.id)
+        return updated_tournament
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/{tournament_id}/scores")
 async def get_player_scores(
     tournament_id: str,
@@ -826,7 +867,7 @@ async def finish_tournament(
 
         logger.info(f"Successfully finished tournament {tournament.id}")
         return tournament
-        
+
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
@@ -834,8 +875,94 @@ async def finish_tournament(
         logger.error(f"Unexpected error finishing tournament {tournament.id}: {str(e)}")
         logger.exception("Full exception details:")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail="An unexpected error occurred while finishing the tournament"
         )
+
+
+@router.post("/{tournament_id}/test/fill-players", response_model=TournamentPlayersResponse)
+async def fill_tournament_with_test_players(
+    tournament: Tournament = Depends(get_tournament_as_organizer),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    TEST MODE ONLY: Fill tournament with fake players to reach max_players.
+    Only available when TEST_MODE=true in environment.
+    """
+    if not settings.TEST_MODE:
+        raise HTTPException(
+            status_code=403,
+            detail="This endpoint is only available in TEST_MODE"
+        )
+
+    if tournament.status != TournamentStatus.PENDING.value:
+        raise HTTPException(
+            status_code=400,
+            detail="Can only fill pending tournaments with test players"
+        )
+
+    logger.info(f"Filling tournament {tournament.id} with test players")
+
+    # Check current player count
+    current_players = len(list(tournament.players))
+    needed_players = tournament.max_players - current_players
+
+    if needed_players <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tournament already has {current_players}/{tournament.max_players} players"
+        )
+
+    # Create test players
+    test_players_created = []
+    for i in range(needed_players):
+        # Create guest user (no email, no password)
+        test_user = User(
+            id=str(uuid.uuid4()),
+            full_name=f"Test Player {current_players + i + 1}",
+            email=None,  # Guest users don't have email
+            hashed_password=None,
+            is_active=True,
+            is_superuser=False,
+            is_verified=True
+        )
+        db.add(test_user)
+        test_players_created.append(test_user)
+
+        # Add to tournament
+        tournament.players.append(test_user)
+
+    await db.commit()
+
+    # Reload tournament with players
+    await db.refresh(tournament)
+    result = await db.execute(
+        select(Tournament)
+        .options(selectinload(Tournament.players))
+        .filter(Tournament.id == tournament.id)
+    )
+    tournament = result.scalar_one()
+
+    logger.info(f"Successfully added {needed_players} test players to tournament {tournament.id}")
+
+    # Build response
+    players = [
+        TournamentPlayerResponse(
+            id=str(player.id),
+            full_name=player.full_name or "Unknown",
+            email=player.email or "Guest",
+        )
+        for player in tournament.players
+    ]
+
+    return TournamentPlayersResponse(
+        tournament_id=str(tournament.id),
+        tournament_name=tournament.name,
+        current_players=len(players),
+        max_players=tournament.max_players,
+        is_full=len(players) >= tournament.max_players,
+        can_join=False,  # Can't join after filling with test players
+        players=players,
+    )
 
 

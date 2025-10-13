@@ -1,0 +1,60 @@
+Task: Implement Tournament Join by Link & Display Organizer Information
+
+  Requirements:
+
+  1. Tournament Join by Link Feature
+
+  - Add a "Share Link" or "Copy Link" button on tournament detail page
+  - Button should be visible to tournament organizers
+  - Clicking the button should copy a shareable tournament link to clipboard (e.g., https://yourapp.com/tournaments/join/{tournament_id} or
+  https://yourapp.com/tournaments/{tournament_id})
+  - Show a success notification when link is copied (e.g., "Link copied to clipboard!")
+  - Anyone with the link should be able to view the tournament details and join if it's in PENDING status and has available spots
+  - The link should work for both authenticated and unauthenticated users
+  - If user is not logged in, prompt them to login/register before joining
+
+  2. Display Organizer Information
+
+  - Show tournament organizer information in the tournament detail page (Overview tab or near the top)
+  - Display organizer's name and profile picture (if available)
+  - Show organizer info in tournament cards/boxes on the dashboard and tournaments list page
+  - Format: "Organized by: [Name]" or similar clear label
+  - Consider adding organizer avatar/picture for better UX
+
+  Technical Considerations:
+
+  Backend:
+
+  - The tournament model already has created_by field with user relationship
+  - Ensure tournament endpoint responses include organizer information (user full_name, picture, etc.)
+  - May need to update TournamentResponse schema to include organizer details
+  - Verify that the existing /tournaments/{id}/join endpoint works for the link-based flow
+
+  Frontend:
+
+  - Use browser's Clipboard API (navigator.clipboard.writeText()) for copy functionality
+  - Add copy icon (e.g., from react-icons: FaLink, FaCopy, or FaShare)
+  - Display organizer in:
+    - Tournament detail page header/overview
+    - Tournament cards in dashboard
+    - Tournament list items
+  - Handle cases where organizer information might be missing (guest users, deleted accounts)
+  - Consider showing a tooltip or temporary notification on successful copy
+
+  Files Likely to Modify:
+
+  Backend:
+  - app/schemas/tournament.py - Add organizer info to TournamentResponse
+  - app/api/v1/endpoints/tournaments.py - Ensure organizer data is loaded in queries
+
+  Frontend:
+  - padel-frontend/src/pages/TournamentDetailPage.js - Add share button and display organizer
+  - padel-frontend/src/components/TournamentCard.js - Display organizer in cards (if this component exists)
+  - Dashboard and tournament list components - Show organizer info
+
+  Design Notes:
+
+  - Keep the share button visually distinct (maybe use purple/blue color scheme)
+  - Place share button near other organizer actions (Start Tournament, Finish Tournament, etc.)
+  - Organizer info should be subtle but clearly visible
+  - Consider mobile responsiveness for the share button

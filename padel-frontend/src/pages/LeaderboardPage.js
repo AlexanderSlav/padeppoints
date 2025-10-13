@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { playerAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
+import { FaMedal, FaHourglassHalf, FaTrophy, FaUser } from 'react-icons/fa';
 
 const LeaderboardPage = () => {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ const LeaderboardPage = () => {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc', padding: '20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center', padding: '60px' }}>
-          <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏳</div>
+          <div style={{ fontSize: '32px', marginBottom: '16px' }}><FaHourglassHalf /></div>
           <p>Loading leaderboard...</p>
         </div>
       </div>
@@ -76,9 +77,12 @@ const LeaderboardPage = () => {
             fontSize: '32px', 
             fontWeight: 'bold', 
             color: '#2d3748', 
-            margin: '0 0 8px 0' 
+            margin: '0 0 8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
           }}>
-            🏅 ELO Leaderboard
+            <FaMedal /> ELO Leaderboard
           </h1>
           <p style={{ color: '#718096', fontSize: '16px', margin: 0 }}>
             Top rated players • Minimum 5 matches played
@@ -283,7 +287,7 @@ const LeaderboardPage = () => {
           
           {leaderboard.length === 0 && (
             <div style={{ padding: '60px', textAlign: 'center', color: '#718096' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏆</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}><FaTrophy /></div>
               <p>No players with enough matches yet.</p>
               <p>Play at least 5 matches to appear on the leaderboard!</p>
             </div>
@@ -302,10 +306,13 @@ const LeaderboardPage = () => {
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '16px',
-              fontWeight: '600'
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
-            👤 My Profile
+            <FaUser /> My Profile
           </button>
           <button 
             onClick={() => navigate('/dashboard')}
@@ -317,10 +324,13 @@ const LeaderboardPage = () => {
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '16px',
-              fontWeight: '600'
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
-            Back to Dashboard
+            <FaUser /> Back to Dashboard
           </button>
         </div>
       </div>

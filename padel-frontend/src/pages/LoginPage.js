@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
+import { FaTrophy, FaLock, FaExclamationTriangle } from 'react-icons/fa';
 import '../styles/globals.css';
 import './LoginPage.css';
 
@@ -45,7 +46,11 @@ const LoginPage = () => {
 
       // Show specific error message based on response
       if (err.response?.data?.detail === 'LOGIN_BAD_CREDENTIALS') {
-        setError('Invalid email or password');
+        setError('Invalid email or password. Please check your credentials.');
+      } else if (err.response?.data?.detail === 'LOGIN_USER_NOT_VERIFIED') {
+        setError('Please verify your email address before logging in.');
+      } else if (err.response?.status === 401) {
+        setError('Invalid email or password. Please check your credentials.');
       } else if (err.response?.data?.detail) {
         setError(err.response.data.detail);
       } else if (err.message) {
@@ -62,7 +67,7 @@ const LoginPage = () => {
     <div className="login-page">
       <div className="login-container">
         <div className="login-brand">
-          <span className="brand-logo">🏆</span>
+          <span className="brand-logo"><FaTrophy /></span>
           <h1 className="brand-name gradient-text">Tornetic</h1>
           <p className="brand-tagline">Tournament Management Made Simple</p>
         </div>
@@ -75,8 +80,29 @@ const LoginPage = () => {
           
           {error && (
             <div className="alert alert-error">
-              <span>⚠️</span>
-              {error}
+              <span><FaExclamationTriangle /></span>
+              <div>
+                {error}
+                {error.includes('Invalid email or password') && (
+                  <div style={{ marginTop: '8px', fontSize: '13px' }}>
+                    Don't have an account?{' '}
+                    <button
+                      onClick={() => navigate('/register')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#e53e3e',
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        fontSize: '13px'
+                      }}
+                    >
+                      Create one here
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -86,7 +112,7 @@ const LoginPage = () => {
               onClick={handleGoogleLogin}
               disabled={loading}
             >
-              <span>🔐</span>
+              <span><FaLock /></span>
               {loading ? 'Loading...' : 'Continue with Google'}
             </button>
 

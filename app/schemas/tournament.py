@@ -48,6 +48,15 @@ class TournamentCreate(TournamentBase):
             raise ValueError('Courts must be at least 1')
         return v
 
+class OrganizerInfo(BaseModel):
+    """Basic information about tournament organizer"""
+    id: str
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    picture: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
 class TournamentUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -61,7 +70,8 @@ class TournamentUpdate(BaseModel):
 class TournamentResponse(TournamentBase):
     id: str
     created_at: datetime
-    created_by: str
+    created_by: str  # Keep for backward compatibility
+    organizer: Optional[OrganizerInfo] = None  # New field for organizer information
     status: str
     current_round: int
     current_players: Optional[int] = 0

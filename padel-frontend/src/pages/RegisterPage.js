@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import { FaTrophy, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import '../styles/globals.css';
 import './RegisterPage.css';
 
@@ -21,8 +22,29 @@ const RegisterPage = () => {
       await authAPI.register(email, password, fullName);
       setSuccess(true);
     } catch (err) {
-      setError('Registration failed');
       console.error('Registration error:', err);
+
+      // Parse error message from backend
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+
+        // Handle specific error codes
+        if (detail === 'REGISTER_USER_ALREADY_EXISTS') {
+          errorMessage = 'An account with this email already exists. Please sign in instead.';
+        } else if (detail === 'REGISTER_INVALID_PASSWORD') {
+          errorMessage = 'Password must be at least 8 characters long.';
+        } else if (typeof detail === 'string') {
+          errorMessage = detail;
+        }
+      } else if (err.response?.status === 400) {
+        errorMessage = 'Invalid registration data. Please check your information.';
+      } else if (err.response?.status === 422) {
+        errorMessage = 'Please provide a valid email address and password.';
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -33,7 +55,7 @@ const RegisterPage = () => {
       <div className="register-page">
         <div className="register-container">
           <div className="success-card card">
-            <div className="success-icon">✅</div>
+            <div className="success-icon"><FaCheckCircle /></div>
             <h2 className="card-title">Account Created!</h2>
             <p className="card-subtitle">Your account has been successfully created. Please log in with your credentials.</p>
             <button onClick={() => navigate('/login')} className="btn btn-primary btn-lg">
@@ -49,7 +71,7 @@ const RegisterPage = () => {
     <div className="register-page">
       <div className="register-container">
         <div className="register-brand">
-          <span className="brand-logo">🏆</span>
+          <span className="brand-logo"><FaTrophy /></span>
           <h1 className="brand-name gradient-text">Tornetic</h1>
           <p className="brand-tagline">Join the tournament revolution</p>
         </div>
@@ -62,8 +84,38 @@ const RegisterPage = () => {
           
           {error && (
             <div className="alert alert-error">
-              <span>⚠️</span>
-              {error}
+              <FaExclamationTriangle />
+              <div>
+                {error}
+                {error.includes('already exists') && (
+                  <div style={{ marginTop: '8px' }}>
+                    <button
+                      onClick={() => navigate('/login')}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#fff',
+                        color: '#e53e3e',
+                        border: '1px solid #e53e3e',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#e53e3e';
+                        e.target.style.color = '#fff';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#fff';
+                        e.target.style.color = '#e53e3e';
+                      }}
+                    >
+                      Go to Sign In
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           

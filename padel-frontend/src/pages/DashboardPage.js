@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { tournamentAPI } from '../services/api';
 import TournamentAdviceCalculator from '../components/TournamentAdviceCalculator';
+import { FaTrophy, FaHourglassHalf, FaCheckCircle, FaMapMarkerAlt, FaCalendarAlt, FaUsers, FaDollarSign, FaSync, FaExclamationTriangle, FaPlusCircle } from 'react-icons/fa';
 import '../styles/globals.css';
 import './DashboardPage.css';
 
@@ -61,21 +62,21 @@ const DashboardPage = () => {
         {/* Quick Stats */}
         <div className="stats-grid">
           <div className="stat-card">
-            <span className="stat-icon">🏆</span>
+            <span className="stat-icon"><FaTrophy /></span>
             <div className="stat-content">
               <span className="stat-value">{tournaments.filter(t => t.status === 'active').length}</span>
               <span className="stat-label">Active Tournaments</span>
             </div>
           </div>
           <div className="stat-card">
-            <span className="stat-icon">⏳</span>
+            <span className="stat-icon"><FaHourglassHalf /></span>
             <div className="stat-content">
               <span className="stat-value">{tournaments.filter(t => t.status === 'pending').length}</span>
               <span className="stat-label">Pending</span>
             </div>
           </div>
           <div className="stat-card">
-            <span className="stat-icon">✅</span>
+            <span className="stat-icon"><FaCheckCircle /></span>
             <div className="stat-content">
               <span className="stat-value">{tournaments.filter(t => t.status === 'completed').length}</span>
               <span className="stat-label">Completed</span>
@@ -97,23 +98,23 @@ const DashboardPage = () => {
 
           {error && (
             <div className="alert alert-error">
-              <span>⚠️</span>
+              <span><FaExclamationTriangle /></span>
               {error}
             </div>
           )}
 
           {loading ? (
             <div className="loading-state">
-              <div className="loading-icon animate-pulse">🔄</div>
+              <div className="loading-icon animate-pulse"><FaSync /></div>
               <p>Loading tournaments...</p>
             </div>
           ) : filteredTournaments.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">🏆</div>
+              <div className="empty-icon"><FaTrophy /></div>
               <h3>{showCompleted ? 'No completed tournaments' : 'No active tournaments'}</h3>
               <p>{showCompleted ? 'Your completed tournaments will appear here.' : 'Create your first tournament to get started!'}</p>
               {!showCompleted && (
-                <button 
+                <button
                   onClick={() => navigate('/create-tournament')}
                   className="btn btn-primary btn-lg mt-lg"
                 >
@@ -139,19 +140,19 @@ const DashboardPage = () => {
                   
                   <div className="tournament-details">
                     <div className="detail-item">
-                      <span className="detail-icon">📍</span>
+                      <span className="detail-icon"><FaMapMarkerAlt /></span>
                       <span>{tournament.location}</span>
                     </div>
                     <div className="detail-item">
-                      <span className="detail-icon">📅</span>
+                      <span className="detail-icon"><FaCalendarAlt /></span>
                       <span>{new Date(tournament.start_date).toLocaleDateString()}</span>
                     </div>
                     <div className="detail-item">
-                      <span className="detail-icon">👥</span>
+                      <span className="detail-icon"><FaUsers /></span>
                       <span>{tournament.max_players} players</span>
                     </div>
                     <div className="detail-item">
-                      <span className="detail-icon">💰</span>
+                      <span className="detail-icon"><FaDollarSign /></span>
                       <span>${tournament.entry_fee}</span>
                     </div>
                   </div>
@@ -171,11 +172,11 @@ const DashboardPage = () => {
         </div>
 
         {/* Mobile Create Button */}
-        <button 
+        <button
           onClick={() => navigate('/create-tournament')}
           className="mobile-fab hide-desktop"
         >
-          <span>➕</span>
+          <span><FaPlusCircle /></span>
         </button>
       </div>
 

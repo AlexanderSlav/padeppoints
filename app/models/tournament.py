@@ -15,6 +15,9 @@ tournament_player = Table(
 class TournamentSystem(enum.Enum):  # Fixed: removed str inheritance
     AMERICANO = "AMERICANO"
     MEXICANO = "MEXICANO"
+    TEAM_AMERICANO = "TEAM_AMERICANO"
+    TEAM_MEXICANO = "TEAM_MEXICANO"
+    BEAT_THE_BOX = "BEAT_THE_BOX"
 
 class TournamentStatus(enum.Enum):
     PENDING = "pending"

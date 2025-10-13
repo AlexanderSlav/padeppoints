@@ -1,14 +1,23 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from enum import Enum
 
 from fastapi_users import schemas
 from pydantic import BaseModel, EmailStr
 from app.schemas.tournament import TournamentResponse
 
 
+class GenderEnum(str, Enum):
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
+    PREFER_NOT_TO_SAY = "prefer_not_to_say"
+
+
 class UserRead(schemas.BaseUser[str]):
     full_name: Optional[str] = None
     picture: Optional[str] = None
+    gender: Optional[GenderEnum] = None
     email: Optional[str] = None  # Override to allow None for guest users
 
     model_config = {"from_attributes": True}
@@ -16,11 +25,13 @@ class UserRead(schemas.BaseUser[str]):
 
 class UserCreate(schemas.BaseUserCreate):
     full_name: Optional[str] = None
+    gender: Optional[GenderEnum] = None
 
 
 class UserUpdate(schemas.BaseUserUpdate):
     full_name: Optional[str] = None
     picture: Optional[str] = None
+    gender: Optional[GenderEnum] = None
 
 
 class PlayerSearchResult(BaseModel):

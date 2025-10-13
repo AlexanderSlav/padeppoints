@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import InfoSection from '../components/InfoSection';
+import { FaTrophy, FaUsers, FaChartBar, FaGamepad, FaBolt, FaChartLine, FaMobileAlt, FaMedal } from 'react-icons/fa';
 import './LandingPage.css';
 
 const LandingPage = () => {
@@ -19,7 +20,7 @@ const LandingPage = () => {
       <nav className="landing-nav">
         <div className="nav-container">
           <div className="logo">
-            <span className="logo-icon">🏆</span>
+            <span className="logo-icon"><FaTrophy /></span>
             <span className="logo-text">Tornetic</span>
           </div>
           <div className="nav-links">
@@ -50,15 +51,15 @@ const LandingPage = () => {
           </div>
           <div className="hero-visual">
             <div className="floating-card card-1">
-              <div className="card-icon">🏆</div>
+              <div className="card-icon"><FaTrophy /></div>
               <div className="card-text">Tournament Created</div>
             </div>
             <div className="floating-card card-2">
-              <div className="card-icon">👥</div>
+              <div className="card-icon"><FaUsers /></div>
               <div className="card-text">8 Players Joined</div>
             </div>
             <div className="floating-card card-3">
-              <div className="card-icon">📊</div>
+              <div className="card-icon"><FaChartBar /></div>
               <div className="card-text">Live Leaderboard</div>
             </div>
           </div>
@@ -73,27 +74,27 @@ const LandingPage = () => {
           </div>
           <div className="features-grid">
             <div className="feature-card">
-              <div className="feature-icon">🎮</div>
+              <div className="feature-icon"><FaGamepad /></div>
               <h3>Multiple Tournament Formats</h3>
               <p>Support for Americano, Mexicano, and more tournament systems with automatic pairing algorithms</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">⚡</div>
+              <div className="feature-icon"><FaBolt /></div>
               <h3>Real-time Scoring</h3>
               <p>Update scores instantly and watch the leaderboard change in real-time as matches progress</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">📈</div>
+              <div className="feature-icon"><FaChartLine /></div>
               <h3>Player Statistics</h3>
               <p>Track performance metrics, win rates, and rankings across all tournaments</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">📱</div>
+              <div className="feature-icon"><FaMobileAlt /></div>
               <h3>Mobile Friendly</h3>
               <p>Access and manage tournaments from any device, anywhere, anytime</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">🏅</div>
+              <div className="feature-icon"><FaMedal /></div>
               <h3>ELO Rating System</h3>
               <p>Professional rating system to track player skill levels and ensure competitive balance</p>
             </div>
@@ -143,7 +144,7 @@ const LandingPage = () => {
         <div className="footer-container">
           <div className="footer-brand">
             <div className="logo">
-              <span className="logo-icon">🏆</span>
+              <span className="logo-icon"><FaTrophy /></span>
               <span className="logo-text">Tornetic</span>
             </div>
             <p>Making padel tournaments simple and fun</p>

@@ -9,6 +9,10 @@ from app.models.round import Round
 from app.models.user import User
 from app.services.base_tournament_format import BaseTournamentFormat
 from app.services.americano_service import AmericanoTournamentService
+from app.services.formats.mexicano_service import MexicanoTournamentService
+from app.services.formats.team_americano_service import TeamAmericanoTournamentService
+from app.services.formats.team_mexicano_service import TeamMexicanoTournamentService
+from app.services.formats.beat_the_box_service import BeatTheBoxTournamentService
 
 
 class TournamentResultService:
@@ -19,8 +23,18 @@ class TournamentResultService:
     
     def _get_format_service(self, tournament: Tournament, players: List[User]) -> BaseTournamentFormat:
         """Get the appropriate tournament format service."""
-        if tournament.system.value == "AMERICANO":
+        system_value = tournament.system.value if hasattr(tournament.system, 'value') else tournament.system
+
+        if system_value == "AMERICANO":
             return AmericanoTournamentService(tournament, players)
+        elif system_value == "MEXICANO":
+            return MexicanoTournamentService(tournament, players)
+        elif system_value == "TEAM_AMERICANO":
+            return TeamAmericanoTournamentService(tournament, players)
+        elif system_value == "TEAM_MEXICANO":
+            return TeamMexicanoTournamentService(tournament, players)
+        elif system_value == "BEAT_THE_BOX":
+            return BeatTheBoxTournamentService(tournament, players)
         else:
             raise ValueError(f"Unsupported tournament system: {tournament.system}")
     

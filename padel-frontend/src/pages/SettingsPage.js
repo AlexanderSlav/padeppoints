@@ -1,16 +1,54 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
+import { authAPI } from '../services/api';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser, logout} = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
+  const [fullName, setFullName] = useState(user?.full_name || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!user) {
     navigate('/login');
     return null;
   }
+
+  const handleSaveProfile = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+
+      const updatedUser = await authAPI.updateCurrentUser({ full_name: fullName });
+      updateUser(updatedUser);
+      setSuccess('Profile updated successfully!');
+    } catch (err) {
+      setError('Failed to update profile. Please try again.');
+      console.error('Profile update error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      await authAPI.deleteCurrentUser();
+      await logout();
+      navigate('/');
+    } catch (err) {
+      setError('Failed to delete account. Please try again.');
+      console.error('Account deletion error:', err);
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
@@ -155,6 +193,36 @@ const SettingsPage = () => {
                 Profile Settings
               </h2>
 
+              {/* Success Message */}
+              {success && (
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#d4edda',
+                  border: '1px solid #c3e6cb',
+                  borderRadius: '8px',
+                  color: '#155724',
+                  marginBottom: '24px',
+                  fontSize: '14px'
+                }}>
+                  {success}
+                </div>
+              )}
+
+              {/* Error Message */}
+              {error && (
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#f8d7da',
+                  border: '1px solid #f5c6cb',
+                  borderRadius: '8px',
+                  color: '#721c24',
+                  marginBottom: '24px',
+                  fontSize: '14px'
+                }}>
+                  {error}
+                </div>
+              )}
+
               {/* Profile Picture */}
               <div style={{ marginBottom: '32px' }}>
                 <label style={{
@@ -224,7 +292,8 @@ const SettingsPage = () => {
                 </label>
                 <input
                   type="text"
-                  defaultValue={user?.full_name || ''}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   style={{
                     width: '100%',
                     maxWidth: '400px',
@@ -304,27 +373,34 @@ const SettingsPage = () => {
 
               {/* Save Button */}
               <button
+                onClick={handleSaveProfile}
+                disabled={loading}
                 style={{
                   padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: loading ? '#cbd5e0' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  opacity: loading ? 0.6 : 1
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                  if (!loading) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
+                  if (!loading) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = 'none';
+                  }
                 }}
               >
-                Save Changes
+                {loading ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           )}
@@ -436,6 +512,21 @@ const SettingsPage = () => {
                 </div>
               </div>
 
+              {/* Error Message */}
+              {error && activeTab === 'account' && (
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#f8d7da',
+                  border: '1px solid #f5c6cb',
+                  borderRadius: '8px',
+                  color: '#721c24',
+                  marginBottom: '24px',
+                  fontSize: '14px'
+                }}>
+                  {error}
+                </div>
+              )}
+
               {/* Danger Zone */}
               <div style={{
                 padding: '20px',
@@ -459,15 +550,18 @@ const SettingsPage = () => {
                   Once you delete your account, there is no going back. Please be certain.
                 </p>
                 <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={loading}
                   style={{
                     padding: '10px 20px',
-                    backgroundColor: '#ef4444',
+                    backgroundColor: loading ? '#cbd5e0' : '#ef4444',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: 'pointer'
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.6 : 1
                   }}
                 >
                   Delete Account
@@ -477,6 +571,83 @@ const SettingsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '450px',
+            width: '90%'
+          }}>
+            <h3 style={{
+              margin: '0 0 16px 0',
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#991b1b'
+            }}>
+              Delete Account?
+            </h3>
+            <p style={{
+              margin: '0 0 24px 0',
+              fontSize: '14px',
+              color: '#4a5568',
+              lineHeight: '1.6'
+            }}>
+              This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={loading}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#4a5568',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={loading}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: loading ? '#cbd5e0' : '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1
+                }}
+              >
+                {loading ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

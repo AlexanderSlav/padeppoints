@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { tournamentAPI, userAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
 import './TournamentDetailPage.css';
+import { FaMapMarkerAlt, FaCalendarAlt, FaDollarSign, FaBaseballBall, FaRocket, FaFlag, FaEdit, FaUsers, FaSearch, FaLightbulb, FaTrophy, FaPlusCircle, FaMinusCircle, FaCheckCircle, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 
 const TournamentDetailPage = () => {
   const { id } = useParams();
@@ -16,6 +17,8 @@ const TournamentDetailPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [notification, setNotification] = useState(null);
   const [estimatedDuration, setEstimatedDuration] = useState(null);
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [currentRoundView, setCurrentRoundView] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -87,9 +90,22 @@ const TournamentDetailPage = () => {
       loadTournamentData();
       setNotification({ type: 'success', message: 'Tournament started successfully!' });
     } catch (err) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.detail || 'Failed to start tournament' 
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.detail || 'Failed to start tournament'
+      });
+    }
+  };
+
+  const handleGenerateNextRound = async () => {
+    try {
+      await tournamentAPI.generateNextRound(id);
+      await loadTournamentData();
+      setNotification({ type: 'success', message: 'Next round generated successfully!' });
+    } catch (err) {
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.detail || 'Failed to generate next round'
       });
     }
   };
@@ -125,29 +141,60 @@ const TournamentDetailPage = () => {
   const handleRecordResult = async (matchId, team1Score, team2Score) => {
     try {
       await tournamentAPI.recordMatchResult(matchId, parseInt(team1Score), parseInt(team2Score));
-      loadTournamentData();
-      setNotification({ type: 'success', message: 'Match result recorded successfully!' });
+
+      // Reload tournament data
+      const [tournamentData, playersData, roundsData] = await Promise.all([
+        tournamentAPI.getTournament(id),
+        tournamentAPI.getTournamentPlayers(id),
+        tournamentAPI.getAllRounds(id)
+      ]);
+
+      setTournament(tournamentData);
+      setPlayers(playersData.players || []);
+      setAllRounds(roundsData || []);
+
+      // Reload leaderboard if tournament is active
+      if (tournamentData.status === 'active' || tournamentData.status === 'completed') {
+        try {
+          const leaderboardData = await tournamentAPI.getTournamentLeaderboard(id);
+          setLeaderboard(leaderboardData);
+        } catch (err) {
+          console.log('No leaderboard data found');
+        }
+      }
+
+      // Sync frontend view with backend's current round
+      // Backend auto-advances rounds for Americano (not Mexicano - that's manual)
+      if (tournamentData.current_round && tournamentData.current_round !== currentRoundView) {
+        setCurrentRoundView(tournamentData.current_round);
+        // Only show auto-advance message for non-Mexicano tournaments
+        if (tournamentData.system !== 'MEXICANO') {
+          setNotification({ type: 'success', message: 'Round completed! Advanced to next round.' });
+        } else {
+          setNotification({ type: 'success', message: 'Match result recorded successfully!' });
+        }
+      } else {
+        setNotification({ type: 'success', message: 'Match result recorded successfully!' });
+      }
     } catch (err) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.detail || 'Failed to record match result' 
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.detail || 'Failed to record match result'
       });
     }
   };
 
   const handleFinishTournament = async () => {
-    if (!confirm('Are you sure you want to finish this tournament? This action cannot be undone.')) {
-      return;
-    }
-    
     try {
       await tournamentAPI.finishTournament(id);
+      setShowFinishConfirm(false);
       loadTournamentData();
       setNotification({ type: 'success', message: 'Tournament finished successfully!' });
     } catch (err) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.detail || 'Failed to finish tournament' 
+      setShowFinishConfirm(false);
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.detail || 'Failed to finish tournament'
       });
     }
   };
@@ -163,6 +210,7 @@ const TournamentDetailPage = () => {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -260,7 +308,7 @@ const TournamentDetailPage = () => {
                   fontWeight: '600',
                   border: '1px solid #e2e8f0'
                 }}>
-                  📍 {tournament.location}
+                  <FaMapMarkerAlt /> {tournament.location}
                 </span>
                 <span style={{
                   display: 'flex',
@@ -273,7 +321,7 @@ const TournamentDetailPage = () => {
                   fontWeight: '600',
                   border: '1px solid #e2e8f0'
                 }}>
-                  📅 {formatDate(tournament.start_date)}
+                  <FaCalendarAlt /> {formatDate(tournament.start_date)}
                 </span>
                 <span style={{
                   display: 'flex',
@@ -286,7 +334,7 @@ const TournamentDetailPage = () => {
                   fontWeight: '600',
                   border: '1px solid #e2e8f0'
                 }}>
-                  💰 ${tournament.entry_fee}
+                  <FaDollarSign /> ${tournament.entry_fee}
                 </span>
                 <span style={{
                   display: 'flex',
@@ -299,7 +347,7 @@ const TournamentDetailPage = () => {
                   fontWeight: '600',
                   border: '1px solid #e2e8f0'
                 }}>
-                  🎾 {tournament.system}
+                  <FaBaseballBall /> {tournament.system}
                 </span>
               </div>
               {tournament.description && (
@@ -448,13 +496,45 @@ const TournamentDetailPage = () => {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                🚀 Start Tournament
+                <FaRocket /> Start Tournament
+              </button>
+            )}
+
+            {isCreatedByMe && tournament.status === 'active' && tournament.system === 'MEXICANO' &&
+             allRounds.filter(r => r.round_number === tournament.current_round).length > 0 &&
+             allRounds.filter(r => r.round_number === tournament.current_round).every(m => m.is_completed) && (
+              <button
+                onClick={handleGenerateNextRound}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a67d8';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#667eea';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <FaRocket /> Generate Next Round
               </button>
             )}
 
             {isCreatedByMe && tournament.status === 'active' && (
               <button
-                onClick={handleFinishTournament}
+                onClick={() => setShowFinishConfirm(true)}
                 style={{
                   padding: '12px 24px',
                   backgroundColor: '#ed8936',
@@ -475,7 +555,7 @@ const TournamentDetailPage = () => {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                🏁 Finish Tournament
+                <FaFlag /> Finish Tournament
               </button>
             )}
 
@@ -503,7 +583,7 @@ const TournamentDetailPage = () => {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                ➕ Join Tournament
+                <FaPlusCircle /> Join Tournament
               </button>
             )}
 
@@ -530,7 +610,7 @@ const TournamentDetailPage = () => {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                ➖ Leave Tournament
+                <FaMinusCircle /> Leave Tournament
               </button>
             )}
 
@@ -588,9 +668,9 @@ const TournamentDetailPage = () => {
             )}
             
             {activeTab === 'players' && (
-              <PlayersTab 
-                players={players} 
-                tournament={tournament} 
+              <PlayersTab
+                players={players}
+                tournament={tournament}
                 isCreatedByMe={isCreatedByMe}
                 onPlayersChanged={loadTournamentData}
               />
@@ -598,12 +678,14 @@ const TournamentDetailPage = () => {
             
 
             {activeTab === 'schedule' && (
-              <ScheduleTab 
-                rounds={allRounds} 
+              <ScheduleTab
+                rounds={allRounds}
                 onRecordResult={handleRecordResult}
                 tournament={tournament}
                 isCreatedByMe={isCreatedByMe}
                 isPlayerInTournament={isPlayerInTournament}
+                currentRoundView={currentRoundView}
+                setCurrentRoundView={setCurrentRoundView}
               />
             )}
 
@@ -612,6 +694,96 @@ const TournamentDetailPage = () => {
             )}
           </div>
         </div>
+
+        {/* Finish Tournament Confirmation Modal */}
+        {showFinishConfirm && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '32px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            }}>
+              <h3 style={{
+                margin: '0 0 16px 0',
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1a202c'
+              }}>
+                Finish Tournament?
+              </h3>
+              <p style={{
+                margin: '0 0 24px 0',
+                fontSize: '14px',
+                color: '#4a5568',
+                lineHeight: '1.6'
+              }}>
+                Are you sure you want to finish this tournament? This will mark the tournament as completed and lock all results. This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowFinishConfirm(false)}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#4a5568',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#f7fafc';
+                    e.target.style.borderColor = '#cbd5e0';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'white';
+                    e.target.style.borderColor = '#e2e8f0';
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleFinishTournament}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#ed8936',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#dd6b20';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#ed8936';
+                  }}
+                >
+                  Yes, Finish Tournament
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
@@ -631,10 +803,10 @@ const OverviewTab = ({ tournament }) => (
     </h3>
     <div style={{ display: 'grid', gap: '16px' }}>
       {[
-        { label: 'Format', value: tournament.system, icon: '🎾' },
-        { label: 'Entry Fee', value: `$${tournament.entry_fee}`, icon: '💰' },
-        { label: 'Max Players', value: tournament.max_players, icon: '👥' },
-        { label: 'Start Date', value: new Date(tournament.start_date).toLocaleDateString(), icon: '📅' }
+        { label: 'Format', value: tournament.system, icon: <FaBaseballBall /> },
+        { label: 'Entry Fee', value: `$${tournament.entry_fee}`, icon: <FaDollarSign /> },
+        { label: 'Max Players', value: tournament.max_players, icon: <FaUsers /> },
+        { label: 'Start Date', value: new Date(tournament.start_date).toLocaleDateString(), icon: <FaCalendarAlt /> }
       ].map((item, index) => (
         <div key={index} style={{
           display: 'flex',
@@ -662,8 +834,8 @@ const OverviewTab = ({ tournament }) => (
           borderRadius: '10px',
           border: '1px solid #e2e8f0'
         }}>
-          <div style={{ fontSize: '13px', color: '#718096', fontWeight: '600', marginBottom: '8px' }}>
-            📝 Description
+          <div style={{ fontSize: '13px', color: '#718096', fontWeight: '600', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaEdit /> Description
           </div>
           <p style={{ margin: 0, color: '#4a5568', lineHeight: '1.6' }}>
             {tournament.description}
@@ -681,6 +853,31 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [playerError, setPlayerError] = useState('');
+  const [playerSuccess, setPlayerSuccess] = useState('');
+  const [removeConfirm, setRemoveConfirm] = useState(null);
+
+  // Clear error messages when tournament status or player count changes
+  React.useEffect(() => {
+    setPlayerError('');
+    setPlayerSuccess('');
+  }, [tournament.status, players.length]);
+
+  const handleFillWithTestPlayers = async () => {
+    try {
+      console.log('Filling tournament with test players');
+      const result = await tournamentAPI.fillTournamentWithTestPlayers(tournament.id);
+      setPlayerSuccess(`Tournament filled with ${result.total_players} players!`);
+      setTimeout(() => setPlayerSuccess(''), 5000);
+      // Reload tournament data
+      await onPlayersChanged();
+    } catch (err) {
+      console.error('Fill test players error:', err);
+      const errorMsg = err.response?.data?.detail || 'Failed to fill tournament with test players';
+      setPlayerError(errorMsg);
+      setTimeout(() => setPlayerError(''), 5000);
+    }
+  };
 
   // Debounced search function
   const searchUsers = async (query) => {
@@ -735,30 +932,38 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
     setAddingPlayer(true);
     setShowSuggestions(false);
     setSuggestions([]);
-    
+    setPlayerError('');
+    setPlayerSuccess('');
+
     try {
       await tournamentAPI.addPlayerByName(tournament.id, playerName.trim());
       setPlayerName('');
       setShowAddPlayer(false);
+      setPlayerSuccess('Player added successfully!');
+      setTimeout(() => setPlayerSuccess(''), 3000);
       onPlayersChanged(); // Refresh tournament data
     } catch (err) {
       console.error('Failed to add player:', err);
-      alert('Failed to add player: ' + (err.response?.data?.detail || err.message));
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to add player';
+      setPlayerError(errorMsg);
+      setTimeout(() => setPlayerError(''), 5000);
     } finally {
       setAddingPlayer(false);
     }
   };
 
   const handleRemovePlayer = async (playerId) => {
-    if (!confirm('Are you sure you want to remove this player?')) {
-      return;
-    }
-
     try {
       await tournamentAPI.removePlayerFromTournament(tournament.id, playerId);
+      setRemoveConfirm(null);
+      setPlayerSuccess('Player removed successfully!');
+      setTimeout(() => setPlayerSuccess(''), 3000);
       onPlayersChanged(); // Refresh tournament data
     } catch (err) {
       console.error('Failed to remove player:', err);
+      setRemoveConfirm(null);
+      setPlayerError('Failed to remove player');
+      setTimeout(() => setPlayerError(''), 5000);
     }
   };
 
@@ -766,6 +971,42 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
 
   return (
     <div>
+      {/* Success Message */}
+      {playerSuccess && (
+        <div style={{
+          padding: '12px 16px',
+          backgroundColor: '#d4edda',
+          border: '1px solid #c3e6cb',
+          borderRadius: '8px',
+          color: '#155724',
+          marginBottom: '16px',
+          fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <FaCheckCircle /> {playerSuccess}
+        </div>
+      )}
+
+      {/* Error Message */}
+      {playerError && (
+        <div style={{
+          padding: '12px 16px',
+          backgroundColor: '#f8d7da',
+          border: '1px solid #f5c6cb',
+          borderRadius: '8px',
+          color: '#721c24',
+          marginBottom: '16px',
+          fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <FaExclamationTriangle /> {playerError}
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h3 style={{
           fontSize: '24px',
@@ -779,30 +1020,56 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
           Players ({players.length}/{tournament.max_players})
         </h3>
         {isCreatedByMe && tournament.status === 'pending' && players.length < tournament.max_players && (
-          <button
-            onClick={() => setShowAddPlayer(!showAddPlayer)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#48bb78',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#38a169';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#48bb78';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            {showAddPlayer ? 'Cancel' : '+ Add Player'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleFillWithTestPlayers}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#d97706';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f59e0b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              🧪 Fill with Test Players
+            </button>
+            <button
+              onClick={() => setShowAddPlayer(!showAddPlayer)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#48bb78',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#38a169';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#48bb78';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              {showAddPlayer ? 'Cancel' : '+ Add Player'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -910,7 +1177,7 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
                     transform: 'translateY(-50%)',
                     color: '#718096'
                   }}>
-                    🔍
+                    <FaSearch />
                   </div>
                 )}
               </div>
@@ -933,9 +1200,9 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
                 {addingPlayer ? 'Adding...' : 'Add'}
               </button>
             </div>
-            
-            <div style={{ fontSize: '12px', color: '#718096', marginTop: '8px' }}>
-              💡 Tip: Start typing to see existing users, or enter a new name to create a guest player.
+
+            <div style={{ fontSize: '12px', color: '#718096', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FaLightbulb /> Tip: Start typing to see existing users, or enter a new name to create a guest player.
             </div>
           </div>
         </div>
@@ -1047,7 +1314,7 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
               </div>
               {isCreatedByMe && tournament.status === 'pending' && (
                 <button
-                  onClick={() => handleRemovePlayer(player.id)}
+                  onClick={() => setRemoveConfirm(player)}
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#f56565',
@@ -1067,6 +1334,96 @@ const PlayersTab = ({ players, tournament, isCreatedByMe, onPlayersChanged }) =>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Remove Player Confirmation Modal */}
+      {removeConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '450px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}>
+            <h3 style={{
+              margin: '0 0 16px 0',
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#1a202c'
+            }}>
+              Remove Player?
+            </h3>
+            <p style={{
+              margin: '0 0 24px 0',
+              fontSize: '14px',
+              color: '#4a5568',
+              lineHeight: '1.6'
+            }}>
+              Are you sure you want to remove <strong>{removeConfirm.full_name || removeConfirm.email}</strong> from this tournament?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setRemoveConfirm(null)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#4a5568',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#f7fafc';
+                  e.target.style.borderColor = '#cbd5e0';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.borderColor = '#e2e8f0';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRemovePlayer(removeConfirm.id)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#f56565',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e53e3e';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#f56565';
+                }}
+              >
+                Yes, Remove Player
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1102,7 +1459,7 @@ const PlayerCard = ({ player, isLeft }) => {
   );
 };
 
-const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlayerInTournament }) => {
+const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlayerInTournament, currentRoundView, setCurrentRoundView }) => {
   const [editingScores, setEditingScores] = useState({});
   const [submittingResults, setSubmittingResults] = useState({});
 
@@ -1121,55 +1478,85 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
     return acc;
   }, {});
 
+  const roundNumbers = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+
+  // Auto-select first incomplete round on initial load (only if not already set)
+  if (currentRoundView === null && roundNumbers.length > 0) {
+    const firstIncompleteRound = roundNumbers.find(roundNum =>
+      grouped[roundNum].some(match => match.team1_score === null || match.team2_score === null)
+    ) || roundNumbers[0];
+    setCurrentRoundView(firstIncompleteRound);
+    return null; // Re-render after setting initial round
+  }
+
+  // If currentRoundView is set but that round no longer exists, reset to first round
+  if (currentRoundView !== null && !roundNumbers.includes(currentRoundView)) {
+    setCurrentRoundView(roundNumbers[0]);
+    return null;
+  }
+
   const handleScoreChange = (matchId, field, value) => {
-    setEditingScores(prev => {
-      const newScores = {
-        ...prev,
-        [matchId]: {
-          ...prev[matchId],
-          [field]: value
-        }
-      };
-
-      // Auto-complete the other team's score for Americano format
-      if (tournament.system === 'AMERICANO' && value !== '' && !isNaN(value)) {
-        const numValue = parseInt(value);
-        const totalPoints = tournament.points_per_match;
-        
-        if (numValue >= 0 && numValue <= totalPoints) {
-          const otherField = field === 'team1_score' ? 'team2_score' : 'team1_score';
-          newScores[matchId][otherField] = totalPoints - numValue;
-        }
+    setEditingScores(prev => ({
+      ...prev,
+      [matchId]: {
+        ...prev[matchId],
+        [field]: value
       }
-
-      return newScores;
-    });
+    }));
   };
 
   const handleSubmitResult = async (match) => {
     const scores = editingScores[match.id];
-    if (!scores || scores.team1_score === undefined || scores.team2_score === undefined) {
-      alert('Please enter both team scores');
+
+    // Check team1_score is provided
+    if (!scores || scores.team1_score === undefined || scores.team1_score === '') {
+      alert('Please enter team 1 score');
       return;
     }
 
     const team1Score = parseInt(scores.team1_score);
-    const team2Score = parseInt(scores.team2_score);
 
-    // Validate scores
-    if (isNaN(team1Score) || isNaN(team2Score) || team1Score < 0 || team2Score < 0) {
-      alert('Please enter valid non-negative scores');
+    // Validate team1_score
+    if (isNaN(team1Score) || team1Score < 0) {
+      alert('Please enter a valid non-negative score for team 1');
       return;
     }
 
-    // For Americano format, scores should sum to the points per match
-    if (tournament.system === 'AMERICANO' && (team1Score + team2Score !== tournament.points_per_match)) {
-      alert(`For Americano format, scores must sum to ${tournament.points_per_match} points`);
-      return;
+    // For formats with auto-calculation, team2_score is optional
+    let team2Score = null;
+    const hasAutoCalculation = (tournament.system === 'AMERICANO' || tournament.system === 'MEXICANO') &&
+                                tournament.points_per_match;
+
+    if (hasAutoCalculation) {
+      // If team2_score is provided, use it; otherwise backend will auto-calculate
+      if (scores.team2_score !== undefined && scores.team2_score !== '') {
+        team2Score = parseInt(scores.team2_score);
+        if (isNaN(team2Score) || team2Score < 0) {
+          alert('Please enter a valid non-negative score for team 2');
+          return;
+        }
+        // Validate sum if both provided
+        if (team1Score + team2Score !== tournament.points_per_match) {
+          alert(`For ${tournament.system} format, scores must sum to ${tournament.points_per_match} points`);
+          return;
+        }
+      }
+      // If team2_score not provided, backend will calculate it
+    } else {
+      // For other formats, team2_score is required
+      if (scores.team2_score === undefined || scores.team2_score === '') {
+        alert('Please enter both team scores');
+        return;
+      }
+      team2Score = parseInt(scores.team2_score);
+      if (isNaN(team2Score) || team2Score < 0) {
+        alert('Please enter valid non-negative scores');
+        return;
+      }
     }
 
     setSubmittingResults(prev => ({ ...prev, [match.id]: true }));
-    
+
     try {
       await onRecordResult(match.id, team1Score, team2Score);
       // Clear editing scores after successful submission
@@ -1206,9 +1593,25 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
   const canEditResults = isCreatedByMe || isPlayerInTournament;
   const isEditing = (matchId) => editingScores[matchId] !== undefined;
 
+  const currentRoundIndex = roundNumbers.indexOf(currentRoundView);
+  const hasPrevious = currentRoundIndex > 0;
+  const hasNext = currentRoundIndex < roundNumbers.length - 1;
+
+  const goToPreviousRound = () => {
+    if (hasPrevious) {
+      setCurrentRoundView(roundNumbers[currentRoundIndex - 1]);
+    }
+  };
+
+  const goToNextRound = () => {
+    if (hasNext) {
+      setCurrentRoundView(roundNumbers[currentRoundIndex + 1]);
+    }
+  };
+
   return (
     <div>
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{
           fontSize: '24px',
           fontWeight: '800',
@@ -1220,8 +1623,57 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
         }}>
           Tournament Schedule & Results
         </h3>
+
+        {/* Round Navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={goToPreviousRound}
+            disabled={!hasPrevious}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: hasPrevious ? 'white' : '#f7fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: hasPrevious ? '#4a5568' : '#cbd5e0',
+              cursor: hasPrevious ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s'
+            }}
+          >
+            ← Previous
+          </button>
+
+          <div style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#667eea',
+            minWidth: '100px',
+            textAlign: 'center'
+          }}>
+            Round {currentRoundView} of {roundNumbers.length}
+          </div>
+
+          <button
+            onClick={goToNextRound}
+            disabled={!hasNext}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: hasNext ? 'white' : '#f7fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: hasNext ? '#4a5568' : '#cbd5e0',
+              cursor: hasNext ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s'
+            }}
+          >
+            Next →
+          </button>
+        </div>
       </div>
-      {Object.keys(grouped).map(num => (
+      {[currentRoundView].map(num => (
         <div key={num} style={{ marginBottom: '32px' }}>
           <h4 style={{
             fontSize: '18px',
@@ -1253,6 +1705,7 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
               <div
                 key={match.id}
                 style={{
+                  position: 'relative',
                   backgroundColor: match.is_completed ? '#f0fff4' : 'white',
                   border: match.is_completed ? '1px solid #9ae6b4' : '1px solid #e2e8f0',
                   borderRadius: '12px',
@@ -1268,8 +1721,23 @@ const ScheduleTab = ({ rounds, onRecordResult, tournament, isCreatedByMe, isPlay
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
+                {/* Court Number Badge */}
+                {match.court_number && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    backgroundColor: '#667eea',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    Court {match.court_number}
+                  </div>
+                )}
 
-                
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '20px', alignItems: 'center' }}>
                   {/* Team 1 */}
                   <div style={{ textAlign: 'center' }}>
@@ -1472,9 +1940,13 @@ const LeaderboardTab = ({ leaderboard, tournament }) => (
               fontSize: '20px',
               fontWeight: '600',
               color: '#2d3748',
-              margin: '0 0 12px 0'
+              margin: '0 0 12px 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}>
-              🏆 Tournament Winner
+              <FaTrophy /> Tournament Winner
             </h4>
             <div style={{
               fontSize: '18px',

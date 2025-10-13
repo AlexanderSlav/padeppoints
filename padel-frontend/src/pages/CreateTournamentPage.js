@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { tournamentAPI } from '../services/api';
 import TournamentAdviceCalculator from '../components/TournamentAdviceCalculator';
+import { FaLightbulb, FaTrophy, FaSync } from 'react-icons/fa';
 import './CreateTournamentPage.css';
 
 const CreateTournamentPage = () => {
@@ -20,7 +21,8 @@ const CreateTournamentPage = () => {
     entry_fee: '',
     max_players: '16',
     points_per_match: '32',
-    courts: '1'
+    courts: '1',
+    system: 'AMERICANO'
   });
 
   const handleInputChange = (e) => {
@@ -37,8 +39,9 @@ const CreateTournamentPage = () => {
         const players = parseInt(formData.max_players);
         const courts = parseInt(formData.courts);
         const pointsPerMatch = parseInt(formData.points_per_match);
-        if (players >= 4 && courts > 0 && pointsPerMatch > 0) {
-          const data = await tournamentAPI.estimateDuration('AMERICANO', players, courts, pointsPerMatch);
+        const system = formData.system;
+        if (players >= 4 && courts > 0 && pointsPerMatch > 0 && system) {
+          const data = await tournamentAPI.estimateDuration(system, players, courts, pointsPerMatch);
           setEstimatedDuration(data);
         } else {
           setEstimatedDuration(null);
@@ -50,7 +53,7 @@ const CreateTournamentPage = () => {
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [formData.max_players, formData.courts, formData.points_per_match]);
+  }, [formData.max_players, formData.courts, formData.points_per_match, formData.system]);
 
 
   const handleSubmit = async (e) => {
@@ -76,7 +79,8 @@ const CreateTournamentPage = () => {
         entry_fee: parseFloat(formData.entry_fee),
         max_players: parseInt(formData.max_players),
         points_per_match: parseInt(formData.points_per_match),
-        courts: parseInt(formData.courts)
+        courts: parseInt(formData.courts),
+        system: formData.system
       };
 
       // Create tournament
@@ -105,7 +109,7 @@ const CreateTournamentPage = () => {
         </div>
         <div className="card">
           <div className="success-message">
-            <div className="icon">🎉</div>
+            <div className="icon"><FaTrophy /></div>
             <h2>Tournament Created!</h2>
             <p>Your tournament has been created successfully.</p>
             <p>Redirecting to dashboard...</p>
@@ -138,7 +142,7 @@ const CreateTournamentPage = () => {
               className="btn"
               style={{ backgroundColor: '#805ad5', border: 'none' }}
             >
-              💡 Get Advice
+              <FaLightbulb /> Get Advice
             </button>
             <a href="/dashboard" className="btn btn-secondary">
               ← Back to Dashboard
@@ -183,6 +187,30 @@ const CreateTournamentPage = () => {
               placeholder="Tell players about your tournament..."
               rows="3"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="system">Tournament Format *</label>
+            <select
+              id="system"
+              name="system"
+              value={formData.system}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="AMERICANO">Americano - Partners rotate, play with everyone</option>
+              <option value="MEXICANO">Mexicano - Partners rotate, ranking-based matchmaking</option>
+              <option value="TEAM_AMERICANO">Team Americano - Fixed pairs, round-robin</option>
+              <option value="TEAM_MEXICANO">Team Mexicano - Fixed pairs, ranking-based</option>
+              <option value="BEAT_THE_BOX">Beat the Box - Performance-based groups</option>
+            </select>
+            <small style={{ display: 'block', marginTop: '4px', color: '#718096', fontSize: '13px' }}>
+              {formData.system === 'AMERICANO' && 'Classic format where everyone plays with and against everyone'}
+              {formData.system === 'MEXICANO' && 'Similar to Americano but matches opponents of similar skill'}
+              {formData.system === 'TEAM_AMERICANO' && 'Play in fixed pairs against all other pairs'}
+              {formData.system === 'TEAM_MEXICANO' && 'Fixed pairs with skill-based matchmaking'}
+              {formData.system === 'BEAT_THE_BOX' && 'Players move between skill groups based on performance'}
+            </small>
           </div>
 
           <div className="form-group">
@@ -281,7 +309,7 @@ const CreateTournamentPage = () => {
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? '🔄 Creating...' : '🏆 Create Tournament'}
+              {loading ? <><FaSync className="fa-spin" /> Creating...</> : <><FaTrophy /> Create Tournament</>}
             </button>
             <a
               href="/dashboard"

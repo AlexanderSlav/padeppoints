@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../components/AuthContext';
+import { FaSync, FaCheckCircle, FaTimes, FaBaseballBall } from 'react-icons/fa';
 
 const CallbackPage = () => {
   const { login } = useAuth();
@@ -97,13 +98,13 @@ const CallbackPage = () => {
   return (
     <div className="container">
       <div className="header">
-        <h1>🎾 Tornetic</h1>
+        <h1><FaBaseballBall /> Tornetic</h1>
       </div>
 
       <div className="card">
         {status === 'processing' && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔄</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}><FaSync className="fa-spin" /></div>
             <h2>Processing Authentication...</h2>
             <p style={{ color: '#718096' }}>Please wait while we log you in.</p>
           </div>
@@ -111,7 +112,7 @@ const CallbackPage = () => {
 
         {status === 'success' && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px', color: '#2f855a' }}><FaCheckCircle /></div>
             <h2 style={{ color: '#2f855a' }}>Login Successful!</h2>
             <p style={{ color: '#718096' }}>Redirecting to your dashboard...</p>
           </div>
@@ -119,7 +120,7 @@ const CallbackPage = () => {
 
         {status === 'error' && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px', color: '#c53030' }}><FaTimes /></div>
             <h2 style={{ color: '#c53030' }}>Authentication Failed</h2>
             <div className="error" style={{ marginTop: '16px' }}>
               {error}

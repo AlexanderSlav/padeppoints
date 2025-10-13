@@ -22,27 +22,30 @@ async def get_tournament_as_organizer(
     Dependency that checks if the current user is the organizer of the tournament.
     Returns the tournament if the user is the organizer, raises 403 otherwise.
     """
-    # Get tournament from database with players loaded
+    # Get tournament from database with players and creator loaded
     result = await db.execute(
         select(Tournament)
-        .options(selectinload(Tournament.players))
+        .options(
+            selectinload(Tournament.players),
+            selectinload(Tournament.creator)
+        )
         .filter(Tournament.id == tournament_id)
     )
     tournament = result.scalar_one_or_none()
-    
+
     if not tournament:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tournament not found"
         )
-    
+
     # Check if current user is the tournament organizer
     if tournament.created_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only tournament organizers can perform this action"
         )
-    
+
     return tournament
 
 async def get_tournament_for_user(
@@ -54,18 +57,21 @@ async def get_tournament_for_user(
     Dependency that gets a tournament for any authenticated user.
     Returns the tournament if it exists, raises 404 otherwise.
     """
-    # Get tournament from database with players loaded
+    # Get tournament from database with players and creator loaded
     result = await db.execute(
         select(Tournament)
-        .options(selectinload(Tournament.players))
+        .options(
+            selectinload(Tournament.players),
+            selectinload(Tournament.creator)
+        )
         .filter(Tournament.id == tournament_id)
     )
     tournament = result.scalar_one_or_none()
-    
+
     if not tournament:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tournament not found"
         )
-    
+
     return tournament

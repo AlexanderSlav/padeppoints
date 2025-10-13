@@ -87,6 +87,20 @@ export const authAPI = {
     return response.data;
   },
 
+  // Update current user profile
+  updateCurrentUser: async (userData) => {
+    console.log('🔍 authAPI: Updating current user profile');
+    const response = await api.patch('/users/me', userData);
+    return response.data;
+  },
+
+  // Delete current user account
+  deleteCurrentUser: async () => {
+    console.log('🔍 authAPI: Deleting current user account');
+    const response = await api.delete('/users/me');
+    return response.data;
+  },
+
   // Check auth status
   getAuthStatus: async () => {
     console.log('🔍 authAPI: Checking authentication');
@@ -337,13 +351,13 @@ export const tournamentAPI = {
   // Add player to tournament by name (searches for user first, creates guest if not found)
   addPlayerByName: async (tournamentId, playerName) => {
     console.log('🔍 tournamentAPI: Adding player by name', tournamentId, playerName);
-    
+
     // First search for the user by name
     const searchResponse = await userAPI.searchUsers(playerName, 10);
     const users = searchResponse.users;
-    
+
     let selectedUser = null;
-    
+
     // Look for exact match first
     for (const user of users) {
       if (user.full_name.toLowerCase() === playerName.toLowerCase()) {
@@ -351,17 +365,31 @@ export const tournamentAPI = {
         break;
       }
     }
-    
+
     // If no exact match found, create a guest user
     if (!selectedUser) {
       console.log('🔍 tournamentAPI: No existing user found, creating guest user');
       selectedUser = await userAPI.createGuestUser(playerName);
     }
-    
+
     // Add the user to the tournament using their ID
     const response = await api.post(`/tournaments/${tournamentId}/add-player`, {
       player_id: selectedUser.id
     });
+    return response.data;
+  },
+
+  // Fill tournament with test players (TEST MODE only)
+  fillTournamentWithTestPlayers: async (tournamentId) => {
+    console.log('🔍 tournamentAPI: Filling tournament with test players', tournamentId);
+    const response = await api.post(`/tournaments/${tournamentId}/test/fill-players`);
+    return response.data;
+  },
+
+  // Generate next round for Mexicano tournaments
+  generateNextRound: async (tournamentId) => {
+    console.log('🔍 tournamentAPI: Generating next round for tournament', tournamentId);
+    const response = await api.post(`/tournaments/${tournamentId}/next-round`);
     return response.data;
   },
 

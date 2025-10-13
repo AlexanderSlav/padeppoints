@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './components/AuthContext';
 import AppLayout from './components/AppLayout';
 import CookieConsent from './components/CookieConsent';
 import { initGA, trackPageView } from './utils/analytics';
+import { FaSpinner, FaBan } from 'react-icons/fa';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import CallbackPage from './pages/CallbackPage';
@@ -28,7 +29,7 @@ const ProtectedRoute = ({ children }) => {
       <div className="container">
         <div className="card">
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '16px' }}>🔄</div>
+            <div style={{ fontSize: '32px', marginBottom: '16px' }}><FaSpinner /></div>
             <p>Loading...</p>
           </div>
         </div>
@@ -48,7 +49,7 @@ const PublicRoute = ({ children }) => {
       <div className="container">
         <div className="card">
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '16px' }}>🔄</div>
+            <div style={{ fontSize: '32px', marginBottom: '16px' }}><FaSpinner /></div>
             <p>Loading...</p>
           </div>
         </div>
@@ -68,7 +69,7 @@ const AdminRoute = ({ children }) => {
       <div className="container">
         <div className="card">
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '16px' }}>🔄</div>
+            <div style={{ fontSize: '32px', marginBottom: '16px' }}><FaSpinner /></div>
             <p>Loading...</p>
           </div>
         </div>
@@ -85,7 +86,7 @@ const AdminRoute = ({ children }) => {
       <div className="container">
         <div className="card">
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚫</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}><FaBan /></div>
             <h2>Access Denied</h2>
             <p style={{ color: '#718096' }}>You don't have permission to access this page.</p>
             <div style={{ marginTop: '24px' }}>

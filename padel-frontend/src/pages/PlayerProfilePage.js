@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { playerAPI } from '../services/api';
 import { useAuth } from '../components/AuthContext';
+import { FaHourglassHalf, FaSadTear, FaChartBar, FaBaseballBall, FaTrophy, FaMedal, FaChartLine, FaUser } from 'react-icons/fa';
 
 const PlayerProfilePage = () => {
   const { userId } = useParams();
@@ -52,7 +53,7 @@ const PlayerProfilePage = () => {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc', padding: '20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center', padding: '60px' }}>
-          <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏳</div>
+          <div style={{ fontSize: '32px', marginBottom: '16px' }}><FaHourglassHalf /></div>
           <p>Loading player profile...</p>
         </div>
       </div>
@@ -63,9 +64,9 @@ const PlayerProfilePage = () => {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc', padding: '20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center', padding: '60px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>😕</div>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}><FaSadTear /></div>
           <h2>{error || 'Player not found'}</h2>
-          <button 
+          <button
             onClick={() => navigate('/dashboard')}
             style={{
               marginTop: '20px',
@@ -159,8 +160,8 @@ const PlayerProfilePage = () => {
             borderRadius: '12px',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px' }}>
-              📊 ELO Rating
+            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaChartBar /> ELO Rating
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -187,8 +188,8 @@ const PlayerProfilePage = () => {
             borderRadius: '12px',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px' }}>
-              🎾 Match Statistics
+            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaBaseballBall /> Match Statistics
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -224,8 +225,8 @@ const PlayerProfilePage = () => {
             borderRadius: '12px',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px' }}>
-              🏆 Podium Finishes
+            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaTrophy /> Podium Finishes
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -259,8 +260,8 @@ const PlayerProfilePage = () => {
             borderRadius: '12px',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px' }}>
-              🎯 Tournament Stats
+            <h3 style={{ margin: '0 0 16px 0', color: '#2d3748', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaMedal /> Tournament Stats
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -286,8 +287,8 @@ const PlayerProfilePage = () => {
           borderRadius: '12px',
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
         }}>
-          <h3 style={{ margin: '0 0 20px 0', color: '#2d3748', fontSize: '20px' }}>
-            📈 Recent Rating History
+          <h3 style={{ margin: '0 0 20px 0', color: '#2d3748', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaChartLine /> Recent Rating History
           </h3>
           {recent_history && recent_history.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
@@ -356,10 +357,13 @@ const PlayerProfilePage = () => {
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '16px',
-              fontWeight: '600'
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
-            🏅 View Leaderboard
+            <FaMedal /> View Leaderboard
           </button>
           <button 
             onClick={() => navigate('/dashboard')}
@@ -371,10 +375,13 @@ const PlayerProfilePage = () => {
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '16px',
-              fontWeight: '600'
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
-            Back to Dashboard
+            <FaUser /> Back to Dashboard
           </button>
         </div>
       </div>

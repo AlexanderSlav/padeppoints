@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import adminService from '../services/adminService';
+import { FaTrash, FaEdit, FaSync, FaBullseye, FaCalculator, FaChartBar, FaTimes, FaCog } from 'react-icons/fa';
 import './AdminAuditPage.css';
 
 const AdminAuditPage = () => {
@@ -67,16 +68,16 @@ const AdminAuditPage = () => {
 
   const getActionIcon = (actionType) => {
     const icons = {
-      'user_delete': '🗑️',
-      'user_update': '✏️',
-      'user_status_change': '🔄',
-      'tournament_result_edit': '🎯',
-      'tournament_score_recalc': '🧮',
-      'tournament_status_change': '📊',
-      'tournament_delete': '❌',
-      'system_config_change': '⚙️',
+      'user_delete': <FaTrash />,
+      'user_update': <FaEdit />,
+      'user_status_change': <FaSync />,
+      'tournament_result_edit': <FaBullseye />,
+      'tournament_score_recalc': <FaCalculator />,
+      'tournament_status_change': <FaChartBar />,
+      'tournament_delete': <FaTimes />,
+      'system_config_change': <FaCog />,
     };
-    return icons[actionType] || '📝';
+    return icons[actionType] || <FaEdit />;
   };
 
   const getActionColor = (actionType) => {
@@ -133,7 +134,7 @@ const AdminAuditPage = () => {
         </select>
 
         <button onClick={fetchAuditLogs} className="refresh-btn">
-          🔄 Refresh
+          <FaSync /> Refresh
         </button>
       </div>
 

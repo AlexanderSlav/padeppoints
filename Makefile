@@ -83,8 +83,8 @@ migration:  ## Make a new migration
 
 .PHONY: drop_db_tables
 drop_db_tables:  ## Drop all tables and types in the database (for dev purposes only; be careful!)
-	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users, tournaments, rounds, tournament_player, alembic_version, player_ratings, rating_history CASCADE;"
-	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TYPE IF EXISTS tournamentsystem CASCADE;"
+	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TABLE IF EXISTS users, tournaments, rounds, tournament_player, alembic_version, tournament_results, player_ratings, rating_history, audit_logs CASCADE;"
+	docker exec -it $(DB_SERVICE_NAME) psql -d ${DB_NAME} -U ${DB_USERNAME} -c "DROP TYPE IF EXISTS tournamentsystem, actiontype, targettype, gender CASCADE;"
 
 .PHONY: reset-db
 reset-db:  ## Reset database completely and run migrations (DEV ONLY - LOSES DATA!)

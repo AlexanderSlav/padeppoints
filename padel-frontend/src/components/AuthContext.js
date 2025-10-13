@@ -79,6 +79,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = (updatedUserData) => {
+    console.log('🔄 updateUser: Updating user data:', updatedUserData);
+    setUser(updatedUserData);
+    localStorage.setItem('user', JSON.stringify(updatedUserData));
+    console.log('✅ updateUser: User data updated');
+  };
+
   const logout = async () => {
     console.log('🚪 logout: Starting logout process');
     try {
@@ -104,6 +111,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    updateUser,
     checkAuthStatus,
   };
 

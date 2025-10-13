@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import adminService from '../services/adminService';
+import { FaUsers, FaTrophy, FaClipboardList, FaSync } from 'react-icons/fa';
 import './AdminDashboardPage.css';
 
 const AdminDashboardPage = () => {
@@ -67,13 +68,13 @@ const AdminDashboardPage = () => {
         <h1>Admin Dashboard</h1>
         <div className="admin-nav">
           <button onClick={() => navigate('/admin/users')} className="nav-btn">
-            👥 Users
+            <FaUsers /> Users
           </button>
           <button onClick={() => navigate('/admin/tournaments')} className="nav-btn">
-            🏆 Tournaments
+            <FaTrophy /> Tournaments
           </button>
           <button onClick={() => navigate('/admin/audit')} className="nav-btn">
-            📋 Audit Logs
+            <FaClipboardList /> Audit Logs
           </button>
         </div>
       </div>
@@ -207,28 +208,28 @@ const AdminDashboardPage = () => {
             className="action-btn"
             onClick={() => navigate('/admin/users')}
           >
-            <span className="action-icon">👥</span>
+            <span className="action-icon"><FaUsers /></span>
             <span className="action-text">Manage Users</span>
           </button>
           <button
             className="action-btn"
             onClick={() => navigate('/admin/tournaments')}
           >
-            <span className="action-icon">🏆</span>
+            <span className="action-icon"><FaTrophy /></span>
             <span className="action-text">Manage Tournaments</span>
           </button>
           <button
             className="action-btn"
             onClick={() => navigate('/admin/audit')}
           >
-            <span className="action-icon">📋</span>
+            <span className="action-icon"><FaClipboardList /></span>
             <span className="action-text">View Audit Logs</span>
           </button>
           <button
             className="action-btn"
             onClick={fetchDashboardStats}
           >
-            <span className="action-icon">🔄</span>
+            <span className="action-icon"><FaSync /></span>
             <span className="action-text">Refresh Stats</span>
           </button>
         </div>

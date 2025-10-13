@@ -22,7 +22,11 @@ class TournamentRepository(BaseRepository[Tournament]):
     
     async def get_by_user(self, user_id: str) -> List[Tournament]:
         """Get tournaments created by the user"""
-        result = await self.db.execute(select(Tournament).filter(Tournament.created_by == user_id))
+        result = await self.db.execute(
+            select(Tournament)
+            .options(selectinload(Tournament.creator))
+            .filter(Tournament.created_by == user_id)
+        )
         return result.scalars().all()
     
     async def get_by_ids(self, tournament_ids: List[str]) -> List[Tournament]:
@@ -249,20 +253,23 @@ class TournamentRepository(BaseRepository[Tournament]):
     
     async def get_upcoming_tournaments(self, limit: int = 10) -> List[Tournament]:
         """Get upcoming tournaments (not yet started)"""
-        query = select(Tournament).filter(
+        query = select(Tournament).options(
+            selectinload(Tournament.creator)
+        ).filter(
             and_(
                 Tournament.start_date >= datetime.now().date(),
                 Tournament.status.in_([TournamentStatus.PENDING.value, TournamentStatus.ACTIVE.value])
             )
         ).order_by(Tournament.start_date.asc()).limit(limit)
-        
+
         result = await self.db.execute(query)
         return result.scalars().all()
     
     async def get_tournaments_joined_by_user(self, user_id: str) -> List[Tournament]:
         """Get tournaments that the user has joined as a player"""
         query = select(Tournament).options(
-            selectinload(Tournament.players)
+            selectinload(Tournament.players),
+            selectinload(Tournament.creator)
         ).join(
             Tournament.players
         ).filter(
@@ -455,18 +462,20 @@ class TournamentRepository(BaseRepository[Tournament]):
         
         # Then get paginated results with ordering
         paginated_query = base_query.order_by(
-            Tournament.start_date.asc(), 
+            Tournament.start_date.asc(),
             Tournament.created_at.desc()
-        ).offset(offset).limit(limit)
-        
+        ).offset(offset).limit(limit).options(
+            selectinload(Tournament.creator)
+        )
+
         result = await self.db.execute(paginated_query)
         rows = result.all()
-        
+
         # Add current_players attribute to each tournament
         tournaments = []
         for row in rows:
             tournament = row[0]
             tournament.current_players = row[1]
             tournaments.append(tournament)
-        
+
         return tournaments, total_count 

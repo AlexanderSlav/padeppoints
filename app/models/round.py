@@ -20,7 +20,10 @@ class Round(Base):
     # Scores
     team1_score = Column(Integer, default=0)
     team2_score = Column(Integer, default=0)
-    
+
+    # Court assignment
+    court_number = Column(Integer, nullable=True)
+
     # Match status
     is_completed = Column(Boolean, default=False)
     

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { FaTrophy, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
 import './TopNav.css';
 
 const TopNav = ({ title }) => {
@@ -16,14 +17,14 @@ const TopNav = ({ title }) => {
     <header className="top-nav">
       <div className="top-nav-container">
         <div className="top-nav-brand">
-          <span className="brand-icon">🏆</span>
+          <span className="brand-icon"><FaTrophy /></span>
           <span className="brand-text gradient-text">Tornetic</span>
         </div>
-        
+
         <div className="top-nav-title">
           {title && <h1 className="page-title">{title}</h1>}
         </div>
-        
+
         <div className="top-nav-actions">
           <div className="user-menu">
             <button className="user-button">
@@ -34,14 +35,14 @@ const TopNav = ({ title }) => {
             </button>
             <div className="user-dropdown">
               <button onClick={() => navigate(`/users/${user?.id}/profile`)} className="dropdown-item">
-                <span>👤</span> Profile
+                <FaUser /> Profile
               </button>
               <button onClick={() => navigate('/settings')} className="dropdown-item">
-                <span>⚙️</span> Settings
+                <FaCog /> Settings
               </button>
               <hr className="dropdown-divider" />
               <button onClick={handleLogout} className="dropdown-item">
-                <span>🚪</span> Logout
+                <FaSignOutAlt /> Logout
               </button>
             </div>
           </div>

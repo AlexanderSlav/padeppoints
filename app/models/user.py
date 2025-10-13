@@ -1,7 +1,14 @@
-from sqlalchemy import Column, String, Boolean
+from sqlalchemy import Column, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 import uuid
+import enum
 from app.models.base import Base
+
+class Gender(str, enum.Enum):
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
+    PREFER_NOT_TO_SAY = "prefer_not_to_say"
 
 class User(Base):
     __tablename__ = "users"
@@ -10,6 +17,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=True)
     full_name = Column(String)
     picture = Column(String)
+    gender = Column(Enum(Gender), nullable=True)
     hashed_password = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)

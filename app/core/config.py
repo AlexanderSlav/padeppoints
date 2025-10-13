@@ -57,7 +57,10 @@ class Settings(BaseSettings):
     
     # General Settings
     DEBUG: bool = os.environ.get("DEBUG", "true").lower() == "true"
-    
+
+    # Testing
+    TEST_MODE: bool = os.environ.get("TEST_MODE", "true").lower() == "true"
+
     model_config = SettingsConfigDict(
         env_nested_delimiter="_",
         env_file_encoding="utf-8",

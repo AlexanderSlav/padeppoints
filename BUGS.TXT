@@ -1,0 +1,105 @@
+  Task: Fix Critical Bugs in Tournament Management System
+
+  Bug Reports to Fix:
+
+  Bug 1: Incorrect Round Auto-Advancement Logic
+
+  Issue: After entering a score for one match, the system immediately redirects to the next round even though other matches in the current round still have no scores entered.
+
+  Expected Behavior: The system should only advance to the next round when ALL matches in the current round have scores entered (both team1_score and team2_score are not
+  null/undefined).
+
+  Current Behavior: System advances as soon as any single match result is saved, regardless of other matches' completion status.
+
+  Location: /Users/aleksandrslavutin/padelpoints/padel-frontend/src/pages/TournamentDetailPage.js around lines 153-196
+
+  Technical Details:
+  - The handleRecordResult function calls loadTournamentData() which reloads all data
+  - There's logic checking if all matches are complete (lines 164-167)
+  - The validation seems to be failing - it's not properly checking ALL matches have BOTH scores set
+  - Need to debug why allMatchesComplete is evaluating to true when it shouldn't
+
+  Investigation needed:
+  - Add console.log to see the actual match states when checking completion
+  - Verify that currentRoundMatches contains all expected matches
+  - Check if there's a timing issue with state updates after saving a result
+  - Ensure the condition properly checks for null, undefined, and empty values
+
+  ---
+  Bug 2: Fill Tournament with Test Players Button Crashes
+
+  Issue: Clicking the "Fill with Test Players" button (🧪 button) causes a runtime error: setPlayerError is not defined
+
+  Error Details:
+  ReferenceError: setPlayerError is not defined
+  at handleFillWithTestPlayers (http://localhost:3000/static/js/bundle.js:132478:7)
+
+  Root Cause: The handleFillWithTestPlayers function is trying to use setPlayerError and setPlayerSuccess state setters, but these don't exist in the scope where the function is
+  defined.
+
+  Location:
+  - Function definition: TournamentDetailPage.js around line 846 (inside PlayersTab component)
+  - The PlayersTab component has its own playerError and playerSuccess state (line 842-843)
+
+  Expected Behavior: When clicking the button, tournament should be filled with test players (guest users) up to max_players capacity, and a success message should be shown.
+
+  Technical Issue: State management - the handler function needs access to the correct state setters within the PlayersTab component scope.
+
+  ---
+  Bug 3: Score Validation Rejects Valid Scores in Mexicano Format
+
+  Issue: When entering valid scores like 5, 7, or 11 in a Mexicano tournament, the system shows error: "Please enter valid non-negative scores"
+
+  Expected Behavior: Mexicano format should accept any valid score combination. Unlike Americano (which requires scores to sum to points_per_match), Mexicano and other formats may
+  have different validation rules.
+
+  Current Behavior: The validation logic is incorrectly rejecting valid score inputs.
+
+  Locations to Check:
+  - Frontend validation: TournamentDetailPage.js - the handleRecordResult function or inline validation in the score input component
+  - Backend validation: app/api/v1/endpoints/tournaments.py - the record_match_result endpoint
+  - Service validation: Check if Americano-specific validation is being applied to all tournament formats
+
+  Technical Investigation Needed:
+  1. Identify where score validation occurs (frontend vs backend)
+  2. Check if validation rules are format-specific or applied globally
+  3. Verify if the error message is coming from frontend validation or backend API response
+  4. Check if Mexicano format has different scoring rules that aren't being respected
+
+  Possible Root Causes:
+  - Americano validation (scores must sum to points_per_match) is being applied to all formats
+  - Frontend validation is checking for specific score patterns that don't apply to Mexicano
+  - Backend endpoint doesn't differentiate validation rules by tournament format
+
+  ---
+  Testing Requirements:
+
+  After fixing these bugs:
+
+  1. Round Advancement Test:
+    - Create tournament with multiple courts (2+ matches per round)
+    - Enter score for first match only
+    - Verify user stays on the same round
+    - Enter scores for all remaining matches
+    - Verify auto-advance only happens after ALL matches have scores
+  2. Fill Players Test:
+    - Create tournament with max_players = 8, current players = 0
+    - Click "Fill with Test Players" button
+    - Verify 8 test players are added
+    - Verify success message appears
+    - Verify no errors in console
+  3. Mexicano Scoring Test:
+    - Create Mexicano tournament
+    - Start tournament
+    - Try entering scores: (5, 7), (11, 9), (6, 6)
+    - Verify all scores are accepted
+    - Verify no validation errors
+
+  ---
+  Implementation Notes:
+
+  - Check CLAUDE.md for project conventions
+  - Use TodoWrite tool to track progress on each bug fix
+  - Test each fix individually before moving to the next
+  - Check both frontend and backend logs when debugging
+  - Ensure fixes don't break existing Americano tournament functionality

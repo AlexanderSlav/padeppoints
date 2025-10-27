@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     # Frontend URL
     FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "http://localhost:3000")
     
+    # CORS Settings
+    @property
+    def allowed_origins(self) -> list[str]:
+        """Get allowed CORS origins based on environment."""
+        if self.DEBUG:
+            return ["*"]  # Allow all origins in development
+        return [self.FRONTEND_URL]
+    
     # JWT Settings
     JWT_SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "your-secret-key-here")
     JWT_ALGORITHM: str = "HS256"
